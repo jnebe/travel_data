@@ -1,0 +1,15 @@
+[project]
+name = "modeling-human-long-range-travel"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.1.8",
+    "geopandas>=1.0.1",
+    "geoplot>=0.5.1",
+    "geopy>=2.4.1",
+    "notebook>=7.4.1",
+    "polars>=1.29.0",
+    "seaborn>=0.13.2",
+]
