@@ -109,7 +109,7 @@ if __name__ == "__main__":
     real_trips = Trip.make_dict(trips)
     model_trips = Trip.make_dict(model.make_trips(len(trips)))
 
-    print(model)
+    Trip.to_dataframe(model_trips).write_csv("modeled_trips.csv", float_precision=2)
 
     for trip in model.all_trips:
         print(f"Trip from {trip.locations[0].name} to {trip.locations[1].name}: real {real_trips.get(trip, -1)} | sim {model_trips.get(trip, -1)} {model.matrix.get(trip)}")

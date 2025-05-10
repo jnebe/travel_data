@@ -27,6 +27,28 @@ class Trip:
             else:
                 trip_dict[trip] += 1
         return trip_dict
+    
+    @staticmethod
+    def to_dataframe(trips: list["Trip"]) -> pl.DataFrame:
+        rows = []
+        for trip in trips:
+            rows.append(
+                {"start_lat": trip.locations[0].coordinates[0],
+                 "start_long": trip.locations[0].coordinates[1],
+                 "end_lat": trip.locations[1].coordinates[0],
+                 "end_long": trip.locations[1].coordinates[1],
+                 "distance": trip.distance.kilometers}
+            )
+
+        return pl.DataFrame(data=rows,
+            schema={
+                "start_lat": pl.Float64,
+                "start_long": pl.Float64,
+                "end_lat": pl.Float64,
+                "end_long": pl.Float64,
+                "distance": pl.Float64
+            }
+        )
 
     @staticmethod
     def load_trips(locations: list[Location], trips: Path | str, trips_schema: dict[str, str], silent: bool = False):
