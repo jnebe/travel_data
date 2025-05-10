@@ -4,6 +4,9 @@
 
 [uv](https://github.com/astral-sh/uv) for dependency management
 
+Use `uv venv` and then `uv sync` to create the required virtual environment and download the required packages.
+After that use `uv run <your command>` to execute python scripts within the virtual environment or manually activate the virtual environment.
+
 ### [celltower_data](./celltower_data/README.md)
 Uses: 
 - polars
@@ -13,6 +16,7 @@ Uses:
 Uses:
 - geopandas
 - geoplot
+
 
 ## Tasks
 
