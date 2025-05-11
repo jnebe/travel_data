@@ -102,6 +102,6 @@ class CensusLocationLoad():
 
         combinedDf = boundariesDf.join(populationDf, how="left", left_on=bIndex, right_on=pIndex)
         locations = []
-        for row in tqdm.tqdm(combinedDf.iter_rows(named=True), total=combinedDf.height, disable=silent):
+        for row in tqdm.tqdm(combinedDf.iter_rows(named=True), desc="Loading Locations", total=combinedDf.height, disable=silent):
             locations.append(Location(row[bName], row[bIndex], row[bLat], row[bLong], row[pPopulation]))
         return locations

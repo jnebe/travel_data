@@ -21,7 +21,7 @@ class Trip:
     @staticmethod
     def make_dict(trips: list["Trip"]) -> dict["Trip", int]:
         trip_dict = {}
-        for trip in trips:
+        for trip in tqdm.tqdm(trips, desc="Making Dict",total=len(trips), unit="trips"):
             if trip_dict.get(trip, None) is None:
                 trip_dict[trip] = 1
             else:
@@ -31,16 +31,16 @@ class Trip:
     @staticmethod
     def to_dataframe(trips: list["Trip"]) -> pl.DataFrame:
         rows = []
-        for trip in trips:
+        for trip in tqdm.tqdm(trips, desc="Making DataFrame", total=len(trips), unit="rows"):
             rows.append(
                 {"start_lat": trip.locations[0].coordinates[0],
                  "start_long": trip.locations[0].coordinates[1],
                  "end_lat": trip.locations[1].coordinates[0],
                  "end_long": trip.locations[1].coordinates[1],
-                 "distance": trip.distance.kilometers}
+                 "distance": float(trip.distance.km)}
             )
 
-        return pl.DataFrame(data=rows,
+        df = pl.DataFrame(data=rows,
             schema={
                 "start_lat": pl.Float64,
                 "start_long": pl.Float64,
@@ -49,6 +49,21 @@ class Trip:
                 "distance": pl.Float64
             }
         )
+
+        return df
+
+    def __eq__(self, value):
+        if not isinstance(value, Trip):
+            return False
+        return  self.locations == value.locations
+    
+    def __hash__(self):
+        return hash(self.locations)
+    
+    def __repr__(self):
+        return f"Trip(locations={self.locations})"
+    
+class TripLoader:
 
     @staticmethod
     def load_trips(locations: list[Location], trips: Path | str, trips_schema: dict[str, str], silent: bool = False):
@@ -65,7 +80,7 @@ class Trip:
         tripsDf = pl.read_csv(trips, infer_schema_length=None)
 
         trips_list = []
-        for row in tqdm.tqdm(tripsDf.iter_rows(named=True), total=tripsDf.height, disable=silent):
+        for row in tqdm.tqdm(tripsDf.iter_rows(named=True), desc="Loading trips", total=tripsDf.height, disable=silent):
             for _ in range(row[num]):
                 _, start_i = tree.query(np.radians( [(row[start_lat], row[start_long])] ) , 1)
                 _, end_i = tree.query(np.radians( [(row[end_lat], row[end_long])] ) , 1)
@@ -74,14 +89,3 @@ class Trip:
                     locations[end_i[0][0]]
                 ))
         return trips_list
-
-    def __eq__(self, value):
-        if not isinstance(value, Trip):
-            return False
-        return  self.locations == value.locations
-    
-    def __hash__(self):
-        return hash(self.locations)
-    
-    def __repr__(self):
-        return f"Trip(locations={self.locations})"
