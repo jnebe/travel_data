@@ -3,7 +3,7 @@ from itertools import product
 from random import choices
 
 from location import Location
-from trip import Trip
+from trip import Trip, TripResults
 
 class GravityModel():
 
@@ -30,8 +30,8 @@ class GravityModel():
     def all_trips(self):
         return list(self.matrix.keys())
 
-    def make_trips(self, n: int) -> list[Trip]:
-        return choices(list(self.matrix.keys()), weights=list(self.matrix.values()), k=n)
+    def make_trips(self, n: int) -> TripResults:
+        return TripResults(choices(list(self.matrix.keys()), weights=list(self.matrix.values()), k=n))
 
     def __len__(self):
         return len(self.matrix)

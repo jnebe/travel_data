@@ -43,42 +43,36 @@ def v2(boundary_data: Path, population_data: Path, number_trips: int, trips: Pat
         logger.info("Loading real trip data and assigning it to existing locations")
         real_trips = TripLoader.load_trips(locs, trips,
                                 {"start_lat": "home_coord_x", "start_long": "home_coord_y", "stop_lat": "dest_coord_x", "stop_long": "dest_coord_y", "number": "frequency"})
-        real_trips_dict = Trip.make_dict(real_trips)
         number_trips = len(real_trips)
     
     logger.info(f"Simulating {number_trips} trips using the gravity model")
     model_trips = model.make_trips(number_trips)
-    model_trips_dict = Trip.make_dict(model_trips)
     
-    if save_model_trips or dovisualize:
-        modelTripsDf = Trip.to_dataframe(model_trips)
     if save_model_trips:
         logger.info(f"Saving model trip data to {save_model_trips.absolute().as_posix()}")
-        modelTripsDf.write_csv(save_model_trips, float_precision=2)
+        model_trips.as_dataframe().write_csv(save_model_trips, float_precision=2)
     if dovisualize:
         logger.info(f"Visualizing model trip data. Output in {dovisualize.absolute().as_posix()}")
         for type in vis_types:
             logger.info(f"Generating {type} plot")
-            visualize(type, modelTripsDf, output_directory=dovisualize, prefix="model")
+            visualize(type, model_trips.as_dataframe(), output_directory=dovisualize, prefix="model")
 
-    if (trips and save_real_trips) or (trips and dovisualize):
-        realTripsDf = Trip.to_dataframe(real_trips)
     if trips:
         if save_real_trips:
             logger.info(f"Saving real trip data to {save_model_trips.absolute().as_posix()}")
-            realTripsDf.write_csv(save_real_trips, float_precision=2)
+            real_trips.as_dataframe().write_csv(save_real_trips, float_precision=2)
         if dovisualize:
             logger.info(f"Visualizing real trip data. Output in {dovisualize.absolute().as_posix()}")
             for type in vis_types:
                 logger.info(f"Generating {type} plot")
-                visualize(type, realTripsDf, output_directory=dovisualize, prefix="real")
+                visualize(type, real_trips.as_dataframe(), output_directory=dovisualize, prefix="real")
 
     if verbose > 0 or ((not save_model_trips) and (not save_real_trips)):
         for trip in model.all_trips:
             if trips:
-                print(f"Trip from {trip.locations[0].name} to {trip.locations[1].name}: real {real_trips_dict.get(trip, -1)} | sim {model_trips_dict.get(trip, -1)} {model.matrix.get(trip)}")
+                print(f"Trip from {trip.locations[0].name} to {trip.locations[1].name}: real {real_trips.as_dict().get(trip, -1)} | sim {model_trips.as_dict().get(trip, -1)} {model.matrix.get(trip)}")
             else:
-                print(f"Trip from {trip.locations[0].name} to {trip.locations[1].name}: sim {model_trips_dict.get(trip, -1)} {model.matrix.get(trip)}")
+                print(f"Trip from {trip.locations[0].name} to {trip.locations[1].name}: sim {model_trips.as_dict().get(trip, -1)} {model.matrix.get(trip)}")
 
 if __name__ == "__main__":
     main()

@@ -17,40 +17,6 @@ class Trip:
     @property
     def distance(self):
         return self.locations[0].distance_to(self.locations[1])
-    
-    @staticmethod
-    def make_dict(trips: list["Trip"]) -> dict["Trip", int]:
-        trip_dict = {}
-        for trip in tqdm.tqdm(trips, desc="Making Dict",total=len(trips), unit="trips"):
-            if trip_dict.get(trip, None) is None:
-                trip_dict[trip] = 1
-            else:
-                trip_dict[trip] += 1
-        return trip_dict
-    
-    @staticmethod
-    def to_dataframe(trips: list["Trip"]) -> pl.DataFrame:
-        rows = []
-        for trip in tqdm.tqdm(trips, desc="Making DataFrame", total=len(trips), unit="rows"):
-            rows.append(
-                {"start_lat": trip.locations[0].coordinates[0],
-                 "start_long": trip.locations[0].coordinates[1],
-                 "end_lat": trip.locations[1].coordinates[0],
-                 "end_long": trip.locations[1].coordinates[1],
-                 "distance": float(trip.distance.km)}
-            )
-
-        df = pl.DataFrame(data=rows,
-            schema={
-                "start_lat": pl.Float64,
-                "start_long": pl.Float64,
-                "end_lat": pl.Float64,
-                "end_long": pl.Float64,
-                "distance": pl.Float64
-            }
-        )
-
-        return df
 
     def __eq__(self, value):
         if not isinstance(value, Trip):
@@ -63,10 +29,68 @@ class Trip:
     def __repr__(self):
         return f"Trip(locations={self.locations})"
     
+class TripResults:
+
+    def __init__(self, results: list[Trip]):
+        self.results = results
+        self.dict = None
+        self.df = None
+
+    def append(self, trip: Trip):
+        self.results.append(trip)
+        self.dict = None
+        self.df = None
+    
+    def extend(self, trips: list[Trip]):
+        self.results.extend(trips)
+        self.dict = None
+        self.df = None
+
+    def update(self, trips: list[Trip]):
+        self.results = trips
+        self.dict = None
+        self.df = None
+
+    def as_dict(self):
+        if self.dict is None:
+            self.dict = {}
+            for trip in tqdm.tqdm(self.results, desc="Making Dict",total=len(self.results), unit="trips"):
+                if self.dict.get(trip, None) is None:
+                    self.dict[trip] = 1
+                else:
+                    self.dict[trip] += 1
+        return self.dict
+    
+    def as_dataframe(self):
+        if self.df is None:
+            rows = []
+            for trip in tqdm.tqdm(self.results, desc="Making DataFrame", total=len(self.results), unit="rows"):
+                rows.append(
+                    {"start_lat": trip.locations[0].coordinates[0],
+                    "start_long": trip.locations[0].coordinates[1],
+                    "end_lat": trip.locations[1].coordinates[0],
+                    "end_long": trip.locations[1].coordinates[1],
+                    "distance": float(trip.distance.km)}
+                )
+
+            self.df = pl.DataFrame(data=rows,
+                schema={
+                    "start_lat": pl.Float64,
+                    "start_long": pl.Float64,
+                    "end_lat": pl.Float64,
+                    "end_long": pl.Float64,
+                    "distance": pl.Float64
+                }
+            )
+        return self.df
+    
+    def __len__(self):
+        return len(self.results)
+
 class TripLoader:
 
     @staticmethod
-    def load_trips(locations: list[Location], trips: Path | str, trips_schema: dict[str, str], silent: bool = False):
+    def load_trips(locations: list[Location], trips: Path | str, trips_schema: dict[str, str], silent: bool = False) -> TripResults:
         if isinstance(trips, str):
             trips = Path(trips)
 
@@ -88,4 +112,5 @@ class TripLoader:
                     locations[start_i[0][0]],
                     locations[end_i[0][0]]
                 ))
-        return trips_list
+        return TripResults(trips_list)
+    
