@@ -9,8 +9,7 @@ class GravityModel():
 
     Gravity = Union[float]
 
-    @staticmethod
-    def gravity(trip: Trip):
+    def gravity(self, trip: Trip):
         return (trip.locations[0].population * trip.locations[1].population) / trip.distance.kilometers
 
     def __init__(self, locations: Iterable[Location]):
@@ -39,3 +38,13 @@ class GravityModel():
 
     def __repr__(self):
         return f"GravityModel(total={self.total_gravity},matrix={self.matrix})"
+    
+class PowerGravityModel(GravityModel):
+
+    def gravity(self, trip):
+        return (trip.locations[0].population * trip.locations[1].population) / (trip.distance.kilometers ** self.alpha)
+
+    def __init__(self, locations, alpha: float = 1.0):
+        self.alpha = alpha
+        # Call the super-constructor last, because that will start the matrix generation, for which all parameters must be set!!!
+        super().__init__(locations)
