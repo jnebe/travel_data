@@ -55,7 +55,7 @@ class CircleLocationAssigner(BaseLocationAssigner):
         self.locations = locations
         self.areas: dict[Location, float] = {}
         for loc in self.locations.locations:
-            area = loc.area / 1,000,000 # divide to get from square meters to square kilometers
+            area = loc.area
             self.areas[loc] = self.calculate_radius(area) 
 
     @staticmethod

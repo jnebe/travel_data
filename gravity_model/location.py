@@ -13,11 +13,11 @@ class Location():
         "id": pl.String,
         "lat": pl.Float64,
         "long": pl.Float64,
-        "area": pl.Int128,
+        "area": pl.Float64,
         "population": pl.Int64
     }
 
-    def __init__(self, location_name: str, location_id: str, latitude: float, longitude: float, area: int, popoluation: int = None):
+    def __init__(self, location_name: str, location_id: str, latitude: float, longitude: float, area: float, popoluation: int = None):
         self.name: str = location_name
         self.lid: str = location_id
         self.latitude: float = latitude
@@ -25,7 +25,7 @@ class Location():
         if area is None:
             self._area: int = -1
         if isinstance(area, (int, float)) and area >= 0:
-            self.area = int(area)
+            self.area = float(area)
         if popoluation is None:
             self._population: int = -1
         if isinstance(popoluation, (int, float)) and popoluation >= 0:
@@ -41,7 +41,7 @@ class Location():
             raise TypeError(f"Area needs to be of type integer, not {type(value)}")
         if value < 0:
             raise ValueError(f"Area needs to be zero or higher, not {value}")
-        self._area = int(value)
+        self._area = float(value)
 
     @property
     def population(self):
@@ -188,8 +188,8 @@ class LocationContainer():
         if not isinstance(value, pl.DataFrame):
             raise TypeError("the df property needs to be a polars DataFrame")
 
-    def to_csv(self, filename: Path, precision: int = 6):
-        self.df.write_csv(filename, float_precision = precision)
+    def to_csv(self, filename: Path):
+        self.df.write_csv(filename)
 
     @staticmethod
     def from_csv(filename: Path) -> "LocationContainer":
@@ -211,5 +211,5 @@ class LocationLoader():
         combinedDf = boundariesDf.join(populationDf, how="left", left_on=bIndex, right_on=pIndex)
         locations = []
         for row in tqdm.tqdm(combinedDf.iter_rows(named=True), desc="Loading Locations", total=combinedDf.height, disable=silent):
-            locations.append(Location(row[bName], row[bIndex], row[bLat], row[bLong], row[bArea], row[pPopulation]))
+            locations.append(Location(row[bName], row[bIndex], row[bLat], row[bLong], row[bArea] / (1000000), row[pPopulation]))
         return LocationContainer(locations)
