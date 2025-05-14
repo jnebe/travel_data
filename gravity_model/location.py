@@ -194,6 +194,13 @@ class LocationContainer():
     @staticmethod
     def from_csv(filename: Path) -> "LocationContainer":
         return LocationContainer(df=pl.read_csv(filename, schema=Location.LOCATION_SCHEMA))
+    
+    def __len__(self):
+        if self._locations is not None:
+            return len(self.locations)
+        if self._df is not None:
+            return self.df.height
+        return 0
         
 class LocationLoader():
 
