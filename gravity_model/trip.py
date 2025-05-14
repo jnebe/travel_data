@@ -166,6 +166,11 @@ class TripContainer:
         self._df = None
         self._dict = value
         
+    def as_relative(self) -> dict[Trip, float]:
+        relative_trips = { }
+        for key, value in tqdm.tqdm(self.dictionary.items(), desc="Making relative trip dict", total=len(self.dictionary), unit="entry(ies)"):
+            relative_trips[key] = value / len(self)
+        return relative_trips
       
     def to_csv(self, filename: Path):
         self.df.write_csv(filename)
@@ -181,7 +186,13 @@ class TripContainer:
         return tc
 
     def __len__(self):
-        return len(self.trips)
+        if self._trips is not None:
+            return len(self.trips)
+        if self._df is not None:
+            return self.df.height
+        if self._dictionary is not None:
+            return len(self.dictionary)
+        return 0 
 
 class TripLoader:
 
