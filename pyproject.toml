@@ -9,6 +9,7 @@ dependencies = [
     "geopandas>=1.0.1",
     "geoplot>=0.5.1",
     "geopy>=2.4.1",
+    "jsonpickle>=4.0.5",
     "notebook>=7.4.1",
     "polars>=1.29.0",
     "scikit-learn>=1.6.1",

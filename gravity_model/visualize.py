@@ -18,6 +18,7 @@ def save_figure(plot: Axes, file: Path):
 vis_types = ["hist", "cdf", "ccdf", "kde"]
 
 def visualize(type: str, df: pl.DataFrame, output_directory: Path = Path("output/"), prefix: str = None):
+    df = df.drop(["start_area", "end_area"])
     plot = None
     if type == "hist":
         plot = hist(df)
