@@ -1,59 +1,51 @@
 import pandas as pd
 import numpy as np
-from scipy.optimize import minimize
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.linear_model import LinearRegression
 
-# === LOAD DATA ===
+# CSV-Datei laden
 df = pd.read_csv("trip_summary.csv")
 
-# === GRAVITY MODEL FUNCTIONS ===
-def gravity_model_vectorized(P_i, P_j, D_ij, alpha, beta, gamma, G):
-    with np.errstate(divide='ignore', invalid='ignore'):
-        result = G * (P_i ** alpha) * (P_j ** beta) / (D_ij ** gamma)
-        result[np.isinf(result)] = 0
-        return np.nan_to_num(result)
+# Filtern: Nur gültige (positive) Werte für log()
+df_filtered = df[(df['trips'] > 0) & (df['distance'] > 0)].copy()
 
-def loss_function(params, df):
-    alpha, beta, gamma, G = params
-    predicted = gravity_model_vectorized(
-        df["start_population"].values,
-        df["end_population"].values,
-        df["distance"].values,
-        alpha, beta, gamma, G
-    )
-    actual = df["trips"].values
-    return mean_squared_error(actual, predicted)
+# Log-Transformation
+df_filtered['log_trips'] = np.log(df_filtered['trips'])
+df_filtered['log_distance'] = np.log(df_filtered['distance'])
 
-# === OPTIMIZATION ===
-initial_params = [1, 1, 1, 1]
-bounds = [(-10, 20), (-10, 20), (-10, 20), (1e-10, 100)]
+# Regression vorbereiten
+X = df_filtered[['log_distance']].values
+y = df_filtered['log_trips'].values
 
-result = minimize(loss_function, initial_params, args=(df,), method="L-BFGS-B", bounds=bounds)
-alpha, beta, gamma, G = result.x
+# Lineare Regression auf log-log-Daten
+model = LinearRegression()
+model.fit(X, y)
 
-print("=== Optimized Parameters ===")
-print(f"Alpha (α):  {alpha:.4f}")
-print(f"Beta  (β):  {beta:.4f}")
-print(f"Gamma (γ):  {gamma:.4f}")
-print(f"G:         {G:.8f}")
+# Koeffizienten extrahieren
+alpha_opt = -model.coef_[0]               # negatives Vorzeichen, da Modell: log(Trips) = log(G) - α * log(Dist)
+log_G_opt = model.intercept_
+G_opt = np.exp(log_G_opt)
 
-# === PREDICTION ===
-df["predicted_trips"] = gravity_model_vectorized(
-    df["start_population"].values,
-    df["end_population"].values,
-    df["distance"].values,
-    alpha, beta, gamma, G
-)
 
-# === EVALUATION ===
-r2 = r2_score(df["trips"], df["predicted_trips"])
-mse = mean_squared_error(df["trips"], df["predicted_trips"])
+# Prognosen berechnen für ALLE Datenpunkte (auch z. B. Trips = 0)
+df['predicted_trips'] = G_opt / (df['distance'] ** alpha_opt)
 
-print(f"\n=== Model Evaluation ===")
-print(f"R² Score: {r2:.4f}")
-print(f"MSE:      {mse:.2f}")
+# Re-Skalierung auf Gesamtwertniveau
+scaling_factor = df['trips'].sum() / df['predicted_trips'].sum()
+df['predicted_trips_scaled'] = df['predicted_trips'] * scaling_factor
 
-# === SAVE RESULTS ===
-df.to_csv("results.csv", index=False)
-print(f"\nResults saved to results.csv\n")
+# Speichern
+df.to_csv("trip_predictions_scaled.csv", index=False)
 
+print(f"Skalierungsfaktor: {scaling_factor:.4f}")
+print("Skalierte Prognosen gespeichert in trip_predictions_scaled.csv")
+
+
+
+# Ergebnisse speichern
+df.to_csv("trip_predictions.csv", index=False)
+
+# Ausgabe
+print(f"Optimiertes G:     {G_opt:.4f}")
+print(f"Optimiertes α:     {alpha_opt:.4f}")
+print(f"Parameter (log-G): {log_G_opt:.4f}")
+print("Neue Datei gespeichert: trip_predictions.csv")
