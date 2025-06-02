@@ -1,8 +1,11 @@
+import matplotlib
+matplotlib.use('TkAgg')
 import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from shapely.geometry import Point
+from shapely.geometry import Point, LineString
 import seaborn as sns
+import numpy as np
 
 def create_funkturm_gdf(funkturm_data):
     # DataFrames für die Funktürme
@@ -80,6 +83,110 @@ def plot_funkturm_heatmap(funkturm_gdf, uk_data):
     # Karte anzeigen
     plt.show()
 
+def plot_home_funkturm_heatmap(funkturm_gdf, uk_data):
+    home_towers = funkturm_gdf[funkturm_gdf['type'] == 'Home']
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    uk_data.plot(ax=ax, color='lightgrey')
+
+    sns.kdeplot(
+        x=home_towers['lon'],
+        y=home_towers['lat'],
+        ax=ax,
+        cmap="Blues",
+        fill=True,
+        bw_adjust=0.2,
+        alpha=0.6,
+        thresh=0.05
+    )
+
+    plt.title('Heatmap der Start-Funktürme (Home)')
+    ax.set_xlim([-10, 4])
+    ax.set_ylim([49, 61])
+    plt.tight_layout()
+    plt.show()
+
+def create_trip_lines(funkturm_data):
+    lines = [
+        LineString([
+            (row['home_coord_y'], row['home_coord_x']),
+            (row['dest_coord_y'], row['dest_coord_x'])
+        ])
+        for _, row in funkturm_data.iterrows()
+    ]
+    return gpd.GeoDataFrame(geometry=lines, crs="EPSG:4326")
+
+def plot_trip_lines(trip_lines_gdf, uk_data):
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Hintergrundkarte
+    uk_data.plot(ax=ax, color='lightgrey')
+
+    # Trips zeichnen
+    trip_lines_gdf.plot(ax=ax, color='blue', linewidth=0.1, alpha=0.05)
+
+    plt.title('Verbindungen zwischen Funktürmen (Trips)')
+    ax.set_xlim([-10, 4])
+    ax.set_ylim([49, 61])
+    plt.tight_layout()
+    plt.show()
+
+def calculate_trip_azimuths(funkturm_data):
+    # Koordinaten extrahieren
+    start_lat = np.radians(funkturm_data['home_coord_x'])
+    start_lon = np.radians(funkturm_data['home_coord_y'])
+    end_lat = np.radians(funkturm_data['dest_coord_x'])
+    end_lon = np.radians(funkturm_data['dest_coord_y'])
+
+    # Azimut-Berechnung
+    delta_lon = end_lon - start_lon
+
+    x = np.sin(delta_lon) * np.cos(end_lat)
+    y = np.cos(start_lat) * np.sin(end_lat) - np.sin(start_lat) * np.cos(end_lat) * np.cos(delta_lon)
+
+    initial_bearing = np.arctan2(x, y)
+
+    # In Grad umwandeln
+    azimuths = (np.degrees(initial_bearing) + 360) % 360
+
+
+    return azimuths
+
+def plot_azimuth_windrose(azimuths, num_bins=36):
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(111, polar=True)
+
+    # In Radiant umwandeln
+    azimuth_radians = np.radians(azimuths)
+
+    # Histogramm
+    counts, bin_edges = np.histogram(azimuth_radians, bins=num_bins, range=(0, 2 * np.pi))
+    max_count = counts.max()
+
+    # Balken zeichnen
+    bars = ax.bar(
+        bin_edges[:-1],
+        counts,
+        width=(2 * np.pi) / num_bins,
+        bottom=0.0,
+        align='edge',
+        color='crimson',
+        alpha=0.8,
+        edgecolor='black'
+    )
+
+    # Himmelsrichtungen statt Winkelbeschriftung
+    directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+    angles_dir = np.linspace(0, 2 * np.pi, len(directions), endpoint=False)
+    ax.set_xticks(angles_dir)
+    ax.set_xticklabels(directions, fontsize=12, fontweight='bold')
+
+    ax.set_theta_zero_location("N")
+    ax.set_theta_direction(-1)
+
+    plt.title("Richtungsanalyse der Trips (Azimut)", fontsize=16, fontweight='bold', pad=20)
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
     # CSV-Datei mit Funkturmdaten einlesen
@@ -90,4 +197,14 @@ if __name__ == "__main__":
     base_map = gpd.read_file('census_data/uk_boundaries_2024_small.geojson')
     
     # plot_funkturm_map(funkturm_gdf, base_map)
-    plot_funkturm_heatmap(funkturm_gdf, base_map)
+    # plot_funkturm_heatmap(funkturm_gdf, base_map)
+
+    # # random Sample, da sonst zu voll
+    sampled_data = funkturm_data.sample(n=10000, random_state=42)
+    # trip_lines_gdf = create_trip_lines(sampled_data)
+    # plot_trip_lines(trip_lines_gdf, base_map)
+
+    azimuths = calculate_trip_azimuths(sampled_data)
+
+    plot_azimuth_windrose(azimuths)
+
