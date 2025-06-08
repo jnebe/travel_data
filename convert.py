@@ -5,7 +5,7 @@ import click
 from gravity_model.log import logger
 from gravity_model.location import LocationContainer
 from gravity_model.trip import TripLoader
-from gravity_model.distance import LATypes, BaseLocationAssigner, BallTreeLocationAssigner, BeeLineLocationAssigner, CircleLocationAssigner
+from gravity_model.distance import LATypes, BallTreeLocationAssigner, BeeLineLocationAssigner, CircleLocationAssigner
 
 @click.command()
 @click.argument("location_data", metavar="[Location Data]", type=click.Path(exists=True, readable=True, dir_okay=False, path_type=Path))
