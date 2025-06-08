@@ -12,3 +12,6 @@ wheels/
 # macos
 
 .DS_store
+
+# Images
+*.png

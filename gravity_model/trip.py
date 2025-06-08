@@ -197,7 +197,7 @@ class TripContainer:
 class TripLoader:
 
     @staticmethod
-    def load_trips(loc_assigner: BaseLocationAssigner, trips: Path | str, trips_schema: dict[str, str], silent: bool = False) -> TripContainer:
+    def load_trips(loc_assigner: BaseLocationAssigner, trips: Path | str, trips_schema: dict[str, str], keep_distance: bool = False, silent: bool = False) -> TripContainer:
         if isinstance(trips, str):
             trips = Path(trips)
 
@@ -209,6 +209,9 @@ class TripLoader:
         for row in tqdm.tqdm(tripsDf.iter_rows(named=True), desc="Loading trips", total=tripsDf.height, disable=silent):
             start = loc_assigner.check((row[start_lat], row[start_long]))
             end = loc_assigner.check((row[end_lat], row[end_long]))
+            if keep_distance:
+                start.coordinates = (row[start_lat], row[start_long])
+                end.coordinates = (row[end_lat], row[end_long])
             if start is None or end is None:
                 continue
             for _ in range(row[num]):

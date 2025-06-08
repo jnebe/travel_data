@@ -12,7 +12,8 @@ from gravity_model.distance import LATypes, BallTreeLocationAssigner, BeeLineLoc
 @click.argument("raw_data", metavar="[Unprocessed Trip Data]", type=click.Path(exists=True, readable=True, dir_okay=False, path_type=Path))
 @click.argument("loc_assigner_type", metavar="[Location Assigner Type]", type=click.Choice(LATypes, case_sensitive=False))
 @click.argument("results_output", metavar="[Trip Data Output]", type=click.Path(readable=True, dir_okay=False, path_type=Path))
-def main(location_data: Path, raw_data: Path, loc_assigner_type:LATypes, results_output: Path):
+@click.option("--k", "--keep-distance", "keep_distance", is_flag=True)
+def main(location_data: Path, raw_data: Path, loc_assigner_type:LATypes, results_output: Path, keep_distance: bool):
     logger.info(f"Loading location data from {location_data.absolute().as_posix()}")
     locs = LocationContainer.from_csv(location_data)
     if loc_assigner_type is LATypes.BALLTREE:
@@ -25,7 +26,8 @@ def main(location_data: Path, raw_data: Path, loc_assigner_type:LATypes, results
     logger.info(f"Loading unprocessed trip data from {raw_data.absolute().as_posix()}")
     trips = TripLoader.load_trips(
         loc_assigner, raw_data,
-        {"start_lat": "home_coord_x", "start_long": "home_coord_y", "stop_lat": "dest_coord_x", "stop_long": "dest_coord_y", "number": "frequency"}
+        {"start_lat": "home_coord_x", "start_long": "home_coord_y", "stop_lat": "dest_coord_x", "stop_long": "dest_coord_y", "number": "frequency"},
+        keep_distance=True
     )
 
     logger.info(f"Saving normalized trip data to {results_output.absolute().as_posix()}")
