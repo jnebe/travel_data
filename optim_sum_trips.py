@@ -7,9 +7,9 @@ df = pd.read_csv("real_output.csv")
 df = df[df["distance"] >= 100]
 
 # Normierung (z.B. Population in Millionen, Distanz in 100 km)
-df["start_population"] = df["start_population"] / 1_000_000  # von Personen auf Millionen
-df["end_population"] = df["end_population"] / 1_000_000      # von Personen auf Millionen
-df["distance"] = df["distance"] / 1000                          # von km auf 100 km
+# df["start_population"] = df["start_population"] / 1_000_000  # von Personen auf Millionen
+# df["end_population"] = df["end_population"] / 1_000_000      # von Personen auf Millionen
+# df["distance"] = df["distance"] / 1000                          # von km auf 100 km
 
 # Erstelle normierte Stadtpaare (sortiert, damit A-B = B-A)
 df["city_pair"] = df.apply(lambda row: tuple(sorted([row["start_area"], row["end_area"]])), axis=1)

@@ -4,28 +4,32 @@ from random import choices
 import enum
 from pathlib import Path
 import random
+import time
 
+import tqdm
 from jsonpickle import encode, decode
 
 from .location import LocationContainer
 from .trip import Trip, TripContainer
-from .training import total_variation_distance
+from .training import total_variation_distance, chi_square_distance, histogram_intersection_kernel
 from .log import logger
 
 class ModelType(enum.StrEnum):
     BASIC = "BASIC"
     POWER = "POWER"
 
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.utils.validation import check_is_fitted
+from sklearn.utils.multiclass import unique_labels
+from sklearn.metrics import euclidean_distances
+
+Gravity = float
+
 class GravityModel():
 
-    Gravity = Union[float]
-
-    def gravity(self, trip: Trip):
-        return (trip.locations[0].population * trip.locations[1].population) / trip.distance.kilometers
-
-    def __init__(self, locations: LocationContainer):
-        self.matrix: dict[Trip, GravityModel.Gravity] = {}
-        self.total_gravity: GravityModel.Gravity = 0.0
+    def __init__(self, locations: LocationContainer, minimum_distance: int = 100):
+        self.matrix: dict[Trip, Gravity] = {}
+        self.total_gravity: Gravity = 0.0
 
         for loc_a, loc_b in product(locations.locations, repeat=2):
             if loc_a == loc_b:
@@ -33,9 +37,13 @@ class GravityModel():
             trip = Trip(loc_a, loc_b)
             if self.matrix.get(trip, None) is not None:
                 continue
-            gravity = self.gravity(trip)
-            self.matrix[trip] = gravity
-            self.total_gravity += gravity
+            if trip.distance < minimum_distance:
+                continue
+            self.matrix[trip] = 0
+        self.recreate_matrix()
+
+    def gravity(self, trip: Trip):
+        return (trip.locations[0].population * trip.locations[1].population) / trip.distance.kilometers
 
     def recreate_matrix(self):
         self.total_gravity = 0
@@ -45,9 +53,13 @@ class GravityModel():
             self.total_gravity += gravity
 
     def train(self, desired: TripContainer, iterations: int = -1, metrics: dict[str, float] = None):
-        model_trips = self.make_trips(len(desired))
+        model_trips = self.make_trips(250000)
         tvd = total_variation_distance(desired, model_trips)
+        chi = chi_square_distance(desired.get_histogram(), model_trips.get_histogram())
+        hik = histogram_intersection_kernel(desired.get_histogram(), model_trips.get_histogram())
         logger.critical(f"TVD: {tvd}")
+        logger.critical(f"CHI^2: {chi}")
+        logger.critical(f"HIK: {hik}")
 
     @property
     def all_trips(self):
@@ -101,30 +113,31 @@ class PowerGravityModel(GravityModel):
     def gravity(self, trip):
         return (trip.locations[0].population * trip.locations[1].population) / (trip.distance.kilometers ** self.alpha)
 
-    def __init__(self, locations, alpha: float = 1.0):
+    def __init__(self, locations, alpha: float = 1.0, minimum_distance: int = 100):
         self.alpha = alpha
         # Call the super-constructor last, because that will start the matrix generation, for which all parameters must be set!!!
-        super().__init__(locations)
+        super().__init__(locations, minimum_distance)
 
-    def train(self, desired: TripContainer, iterations: int = -1, metrics: dict[str, float] = None):
+    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float]], iterations: int = 100):
         iteration = 0
         best_alpha = self.alpha
-        lowest_tvd = 1.0
-        tvd_target = metrics.get("tvd", 1.0)
-        tvd = 1.0
-        while tvd > tvd_target and (iteration < iterations and iterations != -1):
-            model_trips = self.make_trips(250000)
-            tvd = total_variation_distance(desired, model_trips)
-            logger.critical(f"Iteration {iteration} - alpha {self.alpha} - TVD: {tvd}")
-            if tvd < lowest_tvd:
-                best_alpha = self.alpha
-                lowest_tvd = tvd
-            self.alpha = random.random() * 2
+        lowest_chi = None
+        start_time = time.time()
+        while (iteration < iterations and iterations != -1):
+            self.alpha = random.uniform(parameters["alpha"][0], parameters["alpha"][1])
             self.recreate_matrix()
+            model_trips = self.make_trips(250000)
+            chi = chi_square_distance(desired.get_histogram(), model_trips.get_histogram())
+            logger.critical(f"Iteration {iteration} - alpha {self.alpha} - Chi-Squared Distance: {chi}")
+            if lowest_chi is None or  chi < lowest_chi:
+                best_alpha = self.alpha
+                lowest_chi = chi
             iteration += 1
+        end_time = time.time()
         self.alpha = best_alpha
         self.recreate_matrix()
-        logger.critical(f"Best results with: alpha = {self.alpha}")
+        logger.critical(f"Best results with: alpha = {self.alpha} - Chi-Squared Distance: {lowest_chi}")
+        logger.critical(f"Total Training time: {end_time-start_time}s")
 
     def __getstate__(self):
         return \

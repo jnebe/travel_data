@@ -82,6 +82,24 @@ class TripContainer:
         self._dictionary = None
         self._df = None
 
+    def get_histogram(self) -> list[tuple[int, int]]:
+        bins = self.df.with_columns(
+            (
+                (pl.col("distance") // 50).alias("index")
+            )
+        )
+        bins = bins.with_columns(
+            (
+                (pl.col("index") * 50).alias("label")
+            )
+        )
+        bins = bins.group_by("label").count()
+        bins = bins.sort(by="label")
+        results = []
+        for bin in tqdm.tqdm(bins.iter_rows(named=True), desc="Binning", total=bins.height, unit="row(s)"):
+            results.append((bin["label"], bin["count"]))
+        return results
+
     @property
     def trips(self) -> list[Trip]:
         if self._trips is None:
@@ -111,27 +129,26 @@ class TripContainer:
     @property
     def df(self) -> pl.DataFrame:
         if self._df is None:
-            rows = []
-            for trip in tqdm.tqdm(self.trips, desc="Making DataFrame", total=len(self.trips), unit="rows"):
-                rows.append(
-                    {
-                    "start_name": trip.locations[0].name,
-                    "start_id": trip.locations[0].lid,
-                    "start_area": trip.locations[0].area,
-                    "start_population": trip.locations[0].population,
-                    "start_lat": trip.locations[0].coordinates[0],
-                    "start_long": trip.locations[0].coordinates[1],
-                    "end_name": trip.locations[1].name,
-                    "end_id": trip.locations[1].lid,
-                    "end_area": trip.locations[1].area,
-                    "end_population": trip.locations[1].population,
-                    "end_lat": trip.locations[1].coordinates[0],
-                    "end_long": trip.locations[1].coordinates[1],
-                    "distance": float(trip.distance.km)
-                    }
-                )
+            rows = [
+                [
+                trip.locations[0].name,
+                trip.locations[0].lid,
+                trip.locations[0].area,
+                trip.locations[0].population,
+                trip.locations[0].coordinates[0],
+                trip.locations[0].coordinates[1],
+                trip.locations[1].name,
+                trip.locations[1].lid,
+                trip.locations[1].area,
+                trip.locations[1].population,
+                trip.locations[1].coordinates[0],
+                trip.locations[1].coordinates[1],
+                float(trip.distance.km)
+                ]
+                for trip in self.trips
+            ]
 
-            self._df = pl.DataFrame(data=rows,
+            self._df = pl.DataFrame(data=rows, orient="row",
                 schema=Trip.TRIP_SCHEMA
             )
         return self._df
@@ -193,6 +210,11 @@ class TripContainer:
         if self._dictionary is not None:
             return len(self.dictionary)
         return 0 
+    
+    def __getitem__(self, item):
+        if not isinstance(item, int):
+            raise KeyError("TripContainer elements need to be accessed using index!")
+        return self.trips[item]
 
 class TripLoader:
 

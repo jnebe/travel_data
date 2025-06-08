@@ -20,6 +20,7 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, optimiz
     locs = LocationContainer.from_csv(location_data)
     default_parameter = dict(default_parameter)
 
+    logger.info(f"Instantiating model {model_type}")
     model = None
     if model_type is ModelType.BASIC:
         model = GravityModel(locs)
@@ -33,11 +34,7 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, optimiz
         if model_type is ModelType.BASIC:
             model.train(target_trips, 1)
         if model_type is ModelType.POWER:
-            model.train(target_trips, 10, {"tvd": 0.2})
-        
-        
-        # TODO Do model training/hyperparameter training
-        # Loop over parameter space and build models, gen trips, change parameters ....
+            model.train(desired=target_trips, iterations=200, parameters={"alpha": (0.55, 1.5)})
     
     logger.info(f"Storing model at {model_output.absolute().as_posix()}")
     model.to_json(model_output)
