@@ -6,9 +6,9 @@ from pathlib import Path
 import random
 import time
 
-import tqdm
 from jsonpickle import encode, decode
 
+from .ars import PowerRandomSearch, DoublePowerRandomSearch
 from .location import LocationContainer
 from .trip import Trip, TripContainer
 from .training import total_variation_distance, chi_square_distance, histogram_intersection_kernel
@@ -17,11 +17,7 @@ from .log import logger
 class ModelType(enum.StrEnum):
     BASIC = "BASIC"
     POWER = "POWER"
-
-from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.utils.validation import check_is_fitted
-from sklearn.utils.multiclass import unique_labels
-from sklearn.metrics import euclidean_distances
+    DOUBLEPOWER = "DOUBLEPOWER"
 
 Gravity = float
 
@@ -52,7 +48,7 @@ class GravityModel():
             self.matrix[trip] = gravity
             self.total_gravity += gravity
 
-    def train(self, desired: TripContainer, iterations: int = -1, metrics: dict[str, float] = None):
+    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float]], iterations: int = -1, accuracy: float = 0.1, ):
         model_trips = self.make_trips(250000)
         tvd = total_variation_distance(desired, model_trips)
         chi = chi_square_distance(desired.get_histogram(), model_trips.get_histogram())
@@ -110,7 +106,7 @@ class GravityModel():
     
 class PowerGravityModel(GravityModel):
 
-    def gravity(self, trip):
+    def gravity(self, trip: Trip):
         return (trip.locations[0].population * trip.locations[1].population) / (trip.distance.kilometers ** self.alpha)
 
     def __init__(self, locations, alpha: float = 1.0, minimum_distance: int = 100):
@@ -118,26 +114,10 @@ class PowerGravityModel(GravityModel):
         # Call the super-constructor last, because that will start the matrix generation, for which all parameters must be set!!!
         super().__init__(locations, minimum_distance)
 
-    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float]], iterations: int = 100):
-        iteration = 0
-        best_alpha = self.alpha
-        lowest_chi = None
-        start_time = time.time()
-        while (iteration < iterations and iterations != -1):
-            self.alpha = random.uniform(parameters["alpha"][0], parameters["alpha"][1])
-            self.recreate_matrix()
-            model_trips = self.make_trips(250000)
-            chi = chi_square_distance(desired.get_histogram(), model_trips.get_histogram())
-            logger.critical(f"Iteration {iteration} - alpha {self.alpha} - Chi-Squared Distance: {chi}")
-            if lowest_chi is None or  chi < lowest_chi:
-                best_alpha = self.alpha
-                lowest_chi = chi
-            iteration += 1
-        end_time = time.time()
-        self.alpha = best_alpha
-        self.recreate_matrix()
-        logger.critical(f"Best results with: alpha = {self.alpha} - Chi-Squared Distance: {lowest_chi}")
-        logger.critical(f"Total Training time: {end_time-start_time}s")
+    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1):
+        ars = PowerRandomSearch(self, desired, parameters)
+        ars.train(iterations, accuracy)
+        ars.apply()
 
     def __getstate__(self):
         return \
@@ -156,4 +136,40 @@ class PowerGravityModel(GravityModel):
         for key, value in matrix_tuples:
             self.matrix[key] = value
         self.alpha = state.get("alpha")
+        self.total_gravity = state.get("total")
+
+class DoublePowerGravityModel(PowerGravityModel):
+
+    def gravity(self, trip: Trip):
+        return ((trip.locations[0].population ** self.beta) * (trip.locations[1].population ** self.beta)) / (trip.distance.kilometers ** self.alpha)
+
+    def __init__(self, locations, alpha: float = 1.0, beta: float = 1.0, minimum_distance: int = 100):
+        self.beta = beta
+        # Call the super-constructor last, because that will start the matrix generation, for which all parameters must be set!!!
+        super().__init__(locations, alpha, minimum_distance)
+
+    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1):
+        ars = DoublePowerRandomSearch(self, desired, parameters)
+        ars.train(iterations, accuracy)
+        ars.apply()
+
+    def __getstate__(self):
+        return \
+        {
+            "type": ModelType.POWER,
+            "alpha": self.alpha,
+            "beta": self.beta,
+            "total": self.total_gravity,
+            "matrix": self.matrix_as_tuples()
+        }
+
+    def __setstate__(self, state: dict):
+        if state.get("type", None) is None or state.get("type") is not ModelType.POWER:
+            raise ValueError(f"Type needs to be {ModelType.BASIC.__str__()}")
+        matrix_tuples = state.get("matrix")
+        self.matrix = {}
+        for key, value in matrix_tuples:
+            self.matrix[key] = value
+        self.alpha = state.get("alpha")
+        self.beta = state.get("beta")
         self.total_gravity = state.get("total")

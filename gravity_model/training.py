@@ -49,3 +49,11 @@ def histogram_intersection_kernel(target: list[tuple[int, int]], actual: list[tu
             ]
         )
     return hik
+
+class Parameter():
+
+    def __init__(self, name: str, initial: float, minimum: float, maximum: float):
+        self.name = name
+        self.value = initial
+        self.minimum = minimum
+        self.maximum = maximum

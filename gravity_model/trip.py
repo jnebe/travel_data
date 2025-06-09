@@ -95,9 +95,15 @@ class TripContainer:
         )
         bins = bins.group_by("label").count()
         bins = bins.sort(by="label")
+
+        total_count = bins.select(pl.col("count").sum()).item()
+        bins = bins.with_columns(
+            (pl.col("count") / total_count).alias("percentage")
+        )
+
         results = []
         for bin in tqdm.tqdm(bins.iter_rows(named=True), desc="Binning", total=bins.height, unit="row(s)"):
-            results.append((bin["label"], bin["count"]))
+            results.append((bin["label"], bin["percentage"]))
         return results
 
     @property
