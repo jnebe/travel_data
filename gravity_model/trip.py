@@ -29,7 +29,12 @@ class Trip:
     def __init__(self, location_a: Location, location_b: Location):
         if (not isinstance(location_a, Location)) or (not isinstance(location_b, Location)):
             raise TypeError(f"Trip locations need to be of type Location not {type(location_a)} or {type(location_b)}")
-        self.locations: tuple[Location, Location] = tuple(sorted((location_a, location_b)))
+        self.home = location_a
+        self.target = location_b
+
+    @property
+    def locations(self):
+        return (self.home, self.target)
 
     @property
     def distance(self):
@@ -47,7 +52,8 @@ class Trip:
         return self.locations
 
     def __setstate__(self, state: tuple[Location, Location]):
-        self.locations = state
+        self.home = state[0]
+        self.target = state[1]
 
     def __eq__(self, value):
         if not isinstance(value, Trip):
@@ -81,30 +87,6 @@ class TripContainer:
         self.trips = trips
         self._dictionary = None
         self._df = None
-
-    def get_histogram(self) -> list[tuple[int, int]]:
-        bins = self.df.with_columns(
-            (
-                (pl.col("distance") // 50).alias("index")
-            )
-        )
-        bins = bins.with_columns(
-            (
-                (pl.col("index") * 50).alias("label")
-            )
-        )
-        bins = bins.group_by("label").count()
-        bins = bins.sort(by="label")
-
-        total_count = bins.select(pl.col("count").sum()).item()
-        bins = bins.with_columns(
-            (pl.col("count") / total_count).alias("percentage")
-        )
-
-        results = []
-        for bin in tqdm.tqdm(bins.iter_rows(named=True), desc="Binning", total=bins.height, unit="row(s)"):
-            results.append((bin["label"], bin["percentage"]))
-        return results
 
     @property
     def trips(self) -> list[Trip]:

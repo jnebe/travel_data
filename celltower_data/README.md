@@ -11,4 +11,6 @@ The data is already processed, that is:
 
 More information about the frequency and way trips were derived:
 
+Home is the antenna which is regularily active during night hours (0-8)
+
 The 'frequency' field refers to the number of aggregated devices that were recorded doing the trip from start-coord to end-coord at any point in time of Nov 22. A device is registered to a coord if its stay near the corresponding antenna lasts more than 15 minutes. That means that once the device stops at a coord for >15min, this coord will be considered as end-coord and the trip is regarded as ended. The previously registered coord is considered as start-coord.

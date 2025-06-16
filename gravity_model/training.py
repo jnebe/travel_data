@@ -1,5 +1,33 @@
+import tqdm
+import polars as pl
 
 from .trip import Trip, TripContainer
+
+HISTROGRAM_BIN_SIZE = 50
+
+def get_histogram(trips: TripContainer) -> list[tuple[int, int]]:
+    bins = trips.df.with_columns(
+        (
+            (pl.col("distance") // HISTROGRAM_BIN_SIZE).alias("index")
+        )
+    )
+    bins = bins.with_columns(
+        (
+            (pl.col("index") * HISTROGRAM_BIN_SIZE).alias("label")
+        )
+    )
+    bins = bins.group_by("label").count()
+    bins = bins.sort(by="label")
+
+    total_count = bins.select(pl.col("count").sum()).item()
+    bins = bins.with_columns(
+        (pl.col("count") / total_count).alias("percentage")
+    )
+
+    results = []
+    for bin in tqdm.tqdm(bins.iter_rows(named=True), desc="Binning", total=bins.height, unit="row(s)"):
+        results.append((bin["label"], bin["percentage"]))
+    return results
 
 def fix_hist(histogram: list[tuple[int, int]], length) -> list[tuple[int, int]]:
     if len(histogram) >= length:
@@ -49,6 +77,26 @@ def histogram_intersection_kernel(target: list[tuple[int, int]], actual: list[tu
             ]
         )
     return hik
+
+def get_ccdf(trips: TripContainer) -> list[tuple[int, float]]:
+    histogram = sorted(get_histogram(trips), key=lambda x: x[0])
+
+    ccdf = []
+    cumulative = 0.0
+
+    # Traverse from the end to start
+    for label, percentage in reversed(histogram):
+        cumulative += percentage
+        ccdf.append((label, cumulative))
+
+    ccdf.reverse()
+    return ccdf
+
+def kolmogorov_smirnov_statistic(target: list[tuple[int, float]], actual: list[tuple[int, float]]):
+    target = sorted(target, key=lambda x: x[0])
+    actual = sorted(actual, key=lambda x: x[0])
+    diffs = [abs(a - b) for (_, a), (_, b) in zip(target, actual)]
+    return max(diffs)
 
 class Parameter():
 

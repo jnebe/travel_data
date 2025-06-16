@@ -6,7 +6,7 @@ import click
 from gravity_model.log import logger
 from gravity_model.trip import TripContainer
 from gravity_model.location import LocationContainer
-from gravity_model.gravity import GravityModel, PowerGravityModel, DoublePowerGravityModel, ModelType
+from gravity_model.gravity import GravityModel, PowerGravityModel, DoublePowerGravityModel, TriplePowerGravityModel, ModelType
 
 
 @click.command()
@@ -29,6 +29,9 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, optimiz
         model = PowerGravityModel(locs, default_parameter.get("alpha", 1.0))
     elif model_type is ModelType.DOUBLEPOWER:
         model = DoublePowerGravityModel(locs, default_parameter.get("alpha", 1.0), default_parameter.get("beta", 1.0))
+    elif model_type is ModelType.TRIPLEPOWER:
+        model = TriplePowerGravityModel(locs, default_parameter.get("alpha", 1.0), (default_parameter.get("beta", 1.0), default_parameter.get("beta", 1.0)))
+
 
     if model and optimize:
         logger.info(f"Starting Training...")
@@ -40,6 +43,8 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, optimiz
             model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 5.0, 1.0)})
         if model_type is ModelType.DOUBLEPOWER:
             model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 0.7, 0.2), "beta": (0.1, 0.7, 0.2)})
+        if model_type is ModelType.TRIPLEPOWER:
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 1.0, 0.2), "beta_1": (0.1, 1.0, 0.2), "beta_2": (0.1, 1.0, 0.2)})
     
     logger.info(f"Storing model at {model_output.absolute().as_posix()}")
     model.to_json(model_output)
