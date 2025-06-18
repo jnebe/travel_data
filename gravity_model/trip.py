@@ -32,6 +32,9 @@ class Trip:
         self.home = location_a
         self.target = location_b
 
+    def make_copy(self):
+        return Trip(self.home, self.target)
+
     @property
     def locations(self):
         return (self.home, self.target)
@@ -207,7 +210,7 @@ class TripContainer:
 class TripLoader:
 
     @staticmethod
-    def load_trips(loc_assigner: BaseLocationAssigner, trips: Path | str, trips_schema: dict[str, str], keep_distance: bool = False, silent: bool = False) -> TripContainer:
+    def load_trips(loc_assigner: BaseLocationAssigner, trips: Path | str, trips_schema: dict[str, str], keep_distance: bool = False, min_distance: float = 0.0, silent: bool = False) -> TripContainer:
         if isinstance(trips, str):
             trips = Path(trips)
 
@@ -224,10 +227,10 @@ class TripLoader:
                 end.coordinates = (row[end_lat], row[end_long])
             if start is None or end is None:
                 continue
+            new_trip = Trip(start, end)
+            if new_trip.distance < min_distance:
+                continue
             for _ in range(row[num]):
-                trips_list.append(Trip(
-                    start,
-                    end
-                ))
+                trips_list.append(new_trip.make_copy())
         return TripContainer(trips_list)
     
