@@ -9,6 +9,8 @@ from matplotlib.pyplot import gca
 from matplotlib.axes import Axes
 import matplotlib
 
+from .training import HISTROGRAM_BIN_SIZE
+
 def set_dpi(dpi: int, save_dpi: int):
     matplotlib.rcParams["figure.dpi"] = dpi
     matplotlib.rcParams["savefig.dpi"] = save_dpi
@@ -45,9 +47,9 @@ def visualize(type: str, dataframes: Iterable[pl.DataFrame], output_directory: P
         save_figure(plot, output_directory.joinpath(f"{type}_plot.png"))
 
 def hist(plot: Axes, dataframes: Iterable[pl.DataFrame]) -> Axes:
-    plot_x_max = plot.get_xbound()[1] + 50
+    plot_x_max = plot.get_xbound()[1] + HISTROGRAM_BIN_SIZE
     for df in dataframes:
-        sb.histplot(df, ax=plot, x="distance", stat="probability", element="bars", binwidth=50, binrange=(0, plot_x_max))
+        sb.histplot(df, ax=plot, x="distance", stat="probability", element="bars", binwidth=HISTROGRAM_BIN_SIZE, binrange=(0, plot_x_max))
     return plot
 
 def cdf(plot: Axes, dataframes: Iterable[pl.DataFrame]) -> Axes:

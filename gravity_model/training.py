@@ -3,7 +3,7 @@ import polars as pl
 
 from .trip import Trip, TripContainer
 
-HISTROGRAM_BIN_SIZE = 50
+HISTROGRAM_BIN_SIZE = 10
 
 def get_histogram(trips: TripContainer) -> list[tuple[int, int]]:
     bins = trips.df.with_columns(
