@@ -31,6 +31,9 @@ class Location():
         if isinstance(popoluation, (int, float)) and popoluation >= 0:
             self.population = int(popoluation)
 
+    def get_copy(self):
+        return Location(self.name, self.lid, self.latitude, self.longitude, self.area, self.population)
+
     @property
     def area(self):
         return self._area

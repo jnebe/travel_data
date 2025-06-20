@@ -3,7 +3,9 @@ from pathlib import Path
 import polars as pl
 import tqdm
 import numpy as np
+from geopy.distance import distance
 
+from .log import logger
 from .location import Location, LocationContainer
 from .distance import BaseLocationAssigner
 
@@ -40,8 +42,8 @@ class Trip:
         return (self.home, self.target)
 
     @property
-    def distance(self):
-        return self.locations[0].distance_to(self.locations[1])
+    def distance(self) -> distance:
+        return self.home.distance_to(self.target)
     
     @staticmethod
     def from_dict(value: dict) -> "Trip":
@@ -214,6 +216,10 @@ class TripLoader:
         if isinstance(trips, str):
             trips = Path(trips)
 
+        if keep_distance:
+            logger.info("Will keep start and end coordinates of trips that will be mapped")
+        logger.info(f"Minimum distance set to {min_distance}")
+
         start_lat, start_long, end_lat, end_long, num = trips_schema.get("start_lat"), trips_schema.get("start_long"), trips_schema.get("stop_lat"), trips_schema.get("stop_long"), trips_schema.get("number") 
         
         tripsDf = pl.read_csv(trips, infer_schema_length=None)
@@ -223,12 +229,14 @@ class TripLoader:
             start = loc_assigner.check((row[start_lat], row[start_long]))
             end = loc_assigner.check((row[end_lat], row[end_long]))
             if keep_distance:
+                start = start.get_copy()
+                end = end.get_copy()
                 start.coordinates = (row[start_lat], row[start_long])
                 end.coordinates = (row[end_lat], row[end_long])
             if start is None or end is None:
                 continue
             new_trip = Trip(start, end)
-            if new_trip.distance < min_distance:
+            if new_trip.distance.km < min_distance:
                 continue
             for _ in range(row[num]):
                 trips_list.append(new_trip.make_copy())

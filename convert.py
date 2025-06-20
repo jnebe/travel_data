@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import click
+import polars as pl
 
 from gravity_model.log import logger
 from gravity_model.location import LocationContainer
@@ -19,10 +20,16 @@ def main(location_data: Path, raw_data: Path, loc_assigner_type:LATypes, results
     locs = LocationContainer.from_csv(location_data)
     if loc_assigner_type is LATypes.BALLTREE:
         loc_assigner = BallTreeLocationAssigner(locs)
+        logger.info("Using Ball Tree to assign celltowers to Locations!")
     elif loc_assigner_type is LATypes.BEELINE:
         loc_assigner = BeeLineLocationAssigner(locs)
     elif loc_assigner_type is LATypes.CIRCLE:
         loc_assigner = CircleLocationAssigner(locs)
+
+    if keep_distance:
+        logger.info("Will keep celltower coordinates instead of mapping to location coordinates")
+    if drop:
+        logger.info("Will drop any trips with less than 100km of length")
 
     logger.info(f"Loading unprocessed trip data from {raw_data.absolute().as_posix()}")
     trips = TripLoader.load_trips(
@@ -30,6 +37,9 @@ def main(location_data: Path, raw_data: Path, loc_assigner_type:LATypes, results
         {"start_lat": "home_coord_x", "start_long": "home_coord_y", "stop_lat": "dest_coord_x", "stop_long": "dest_coord_y", "number": "frequency"},
         keep_distance=keep_distance, min_distance=100 if drop else 0
     )
+    min_dist = trips.df.select(pl.col("distance").min()).item()
+    if drop and min_dist < 100:
+        raise RuntimeError(f"The drop flag is set, but the shortest trip is shorter than 100km long! ({min_dist})")
 
     logger.info(f"Saving normalized trip data to {results_output.absolute().as_posix()}")
     trips.to_csv(results_output)
