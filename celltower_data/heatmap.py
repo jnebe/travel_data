@@ -106,6 +106,44 @@ def plot_home_funkturm_heatmap(funkturm_gdf, uk_data):
     plt.tight_layout()
     plt.show()
 
+
+def plot_home_funkturm_heatmap(funkturm_gdf, uk_data):
+    home_towers = funkturm_gdf[funkturm_gdf['type'] == 'Home']
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    uk_data.plot(ax=ax, color='lightgrey')
+
+    sns.kdeplot(
+        x=home_towers['lon'],
+        y=home_towers['lat'],
+        ax=ax,
+        cmap="Blues",
+        fill=True,
+        bw_adjust=0.2,
+        alpha=0.6,
+        thresh=0.05
+    )
+
+    plt.title('Heatmap der Start-Funktürme (Home)')
+    ax.set_xlim([-10, 4])
+    ax.set_ylim([49, 61])
+    plt.tight_layout()
+    plt.show()
+
+def filter_trips_starting_in_london(funkturm_data):
+    # Beispiel Bounding Box für London
+    min_lat, max_lat = 51.3, 51.7
+    min_lon, max_lon = -0.5, 0.3
+
+    # Filter
+    london_trips = funkturm_data[
+        (funkturm_data['home_coord_x'] >= min_lat) &
+        (funkturm_data['home_coord_x'] <= max_lat) &
+        (funkturm_data['home_coord_y'] >= min_lon) &
+        (funkturm_data['home_coord_y'] <= max_lon)
+    ]
+    return london_trips
+
 def create_trip_lines(funkturm_data):
     lines = [
         LineString([
