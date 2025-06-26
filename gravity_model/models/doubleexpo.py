@@ -1,21 +1,21 @@
 from . import ModelType
-from .doublepower import DoublePowerGravityModel
-from ..random_search.triple import AlphaBetaGammaRandomSearch
+from .power import PowerGravityModel
+from ..ars import DoublePowerRandomSearch
 from ..trip import Trip, TripContainer
 from ..log import logger
 
-class TriplePowerGravityModel(DoublePowerGravityModel):
+class DoublePowerGravityModel(PowerGravityModel):
 
     def gravity(self, trip: Trip):
-        return ((trip.locations[0].population ** self.beta) * (trip.locations[1].population ** self.gamma)) / (trip.distance.kilometers ** self.alpha)
+        return ((trip.locations[0].population ** self.beta) * (trip.locations[1].population ** self.beta)) / (trip.distance.kilometers ** self.alpha)
 
-    def __init__(self, locations, alpha: float = 1.0, beta: float = 1.0, gamma: float = 1.0, minimum_distance: int = 100):
-        self.gamma = gamma
+    def __init__(self, locations, alpha: float = 1.0, beta: float = 1.0, minimum_distance: int = 100):
+        self.beta = beta
         # Call the super-constructor last, because that will start the matrix generation, for which all parameters must be set!!!
-        super().__init__(locations, alpha, beta, minimum_distance)
+        super().__init__(locations, alpha, minimum_distance)
 
     def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1):
-        ars = AlphaBetaGammaRandomSearch(self, desired, parameters)
+        ars = DoublePowerRandomSearch(self, desired, parameters)
         ars.train(iterations, accuracy)
         ars.apply()
 
@@ -25,7 +25,6 @@ class TriplePowerGravityModel(DoublePowerGravityModel):
             "type": ModelType.POWER,
             "alpha": self.alpha,
             "beta": self.beta,
-            "gamma": self.gamma,
             "total": self.total_gravity,
             "matrix": self.matrix_as_tuples()
         }
@@ -39,5 +38,4 @@ class TriplePowerGravityModel(DoublePowerGravityModel):
             self.matrix[key] = value
         self.alpha = state.get("alpha")
         self.beta = state.get("beta")
-        self.gamma = state.get("gamma")
         self.total_gravity = state.get("total")

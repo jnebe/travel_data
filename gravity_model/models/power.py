@@ -1,6 +1,6 @@
 from . import ModelType
 from .basic import GravityModel
-from ..ars import PowerRandomSearch
+from ..random_search.single import AlphaRandomSearch
 from ..trip import Trip, TripContainer
 from ..log import logger
 
@@ -15,7 +15,7 @@ class PowerGravityModel(GravityModel):
         super().__init__(locations, minimum_distance)
 
     def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1):
-        ars = PowerRandomSearch(self, desired, parameters)
+        ars = AlphaRandomSearch(self, desired, parameters)
         ars.train(iterations, accuracy)
         ars.apply()
 

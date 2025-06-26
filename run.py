@@ -4,7 +4,7 @@ from pathlib import Path
 import click
 
 from gravity_model.log import logger
-from gravity_model.models.basic import GravityModel
+from gravity_model.models.loader import model_from_json
 
 @click.command()
 @click.argument("model_location", metavar="[Model]", type=click.Path(exists=True, readable=True, dir_okay=False, path_type=Path))
@@ -12,7 +12,7 @@ from gravity_model.models.basic import GravityModel
 @click.argument("number", metavar="[Number Runs]", type=int)
 def main(model_location: Path, trip_output: Path, number: int):
     logger.info(f"Loading model from {model_location.absolute().as_posix()}")
-    model = GravityModel.from_json(model_location)
+    model = model_from_json(model_location)
 
     logger.info(f"Executing {number} trips...")
     trips = model.make_trips(number)

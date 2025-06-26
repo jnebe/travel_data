@@ -1,7 +1,6 @@
 from itertools import product
 from random import choices
 from pathlib import Path
-from jsonpickle import encode, decode
 
 from . import Gravity, ModelType
 from ..location import LocationContainer
@@ -79,12 +78,6 @@ class GravityModel():
         json = encode(self)
         with filename.open("w") as f:
             f.write(json)
-
-    @staticmethod
-    def from_json(filename: Path) -> "GravityModel":
-        with filename.open("r") as f:
-            json = f.read()
-        return decode(json)
 
     def __len__(self):
         return len(self.matrix)
