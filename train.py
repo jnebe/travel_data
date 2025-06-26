@@ -6,7 +6,11 @@ import click
 from gravity_model.log import logger
 from gravity_model.trip import TripContainer
 from gravity_model.location import LocationContainer
-from gravity_model.gravity import GravityModel, PowerGravityModel, DoublePowerGravityModel, TriplePowerGravityModel, ModelType
+from gravity_model.models import ModelType
+from gravity_model.models.basic import GravityModel
+from gravity_model.models.power import PowerGravityModel
+from gravity_model.models.doublepower import DoublePowerGravityModel
+from gravity_model.models.triplepower import TriplePowerGravityModel
 
 
 @click.command()

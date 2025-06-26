@@ -4,7 +4,7 @@ from pathlib import Path
 import click
 
 from gravity_model.log import logger
-from gravity_model.gravity import GravityModel
+from gravity_model.models.basic import GravityModel
 
 @click.command()
 @click.argument("model_location", metavar="[Model]", type=click.Path(exists=True, readable=True, dir_okay=False, path_type=Path))
