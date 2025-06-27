@@ -4,7 +4,7 @@ TRAIN_DEPS = ./train.py ./gravity_model/random_search/*.py ./gravity_model/train
 RUN_DEPS = ./run.py
 EVAL_DEPS = ./eval.py real_output.csv
 
-CMD_PREFIX := $(shell command -v uv >/dev/null 2>&1 && echo "uv run" || echo "python")
+CMD_PREFIX := $(shell if command -v uv >/dev/null 2>&1; then echo "uv run"; else echo "python"; fi)
 
 clean:
 	rm -f loc_data.csv *_output.csv *_model.json
@@ -33,8 +33,3 @@ ITERATIONS ?= 5
 # Full workflow for a type (e.g. full-power)
 full-%: loc_data.csv real_output.csv %_model.json %_model_output.csv %-eval
 	@echo "Completed full workflow for $*"
-	
-	
-	
-	
-	
