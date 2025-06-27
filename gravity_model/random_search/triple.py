@@ -24,31 +24,34 @@ class AlphaBetaGammaRandomSearch():
         beta_fixed = False
         gamma_fixed = False
         
-        while (iteration < iterations and iterations != -1):
-            self.model.alpha = random.uniform(self.parameters["alpha"].minimum, self.parameters["alpha"].maximum)
-            self.model.beta = random.uniform(self.parameters["beta"].minimum, self.parameters["beta"].maximum)
-            self.model.gamma = random.uniform(self.parameters["gamma"].minimum, self.parameters["gamma"].maximum)
+        try:
+            while (iteration < iterations and iterations != -1):
+                self.model.alpha = random.uniform(self.parameters["alpha"].minimum, self.parameters["alpha"].maximum)
+                self.model.beta = random.uniform(self.parameters["beta"].minimum, self.parameters["beta"].maximum)
+                self.model.gamma = random.uniform(self.parameters["gamma"].minimum, self.parameters["gamma"].maximum)
 
-            self.model.recreate_matrix()
-            model_trips = self.model.make_trips(DEFAULT_TRAINING_TRIPS)
-            chi = chi_square_distance(get_histogram(self.real_data), get_histogram(model_trips))
-            kss = kolmogorov_smirnov_statistic(get_ccdf(self.real_data), get_ccdf(model_trips))
-            logger.info(f"Iteration {iteration} - alpha {self.model.alpha} [{self.parameters['alpha'].minimum}, {self.parameters['alpha'].maximum}] - beta home {self.model.beta} [{self.parameters['beta'].minimum}, {self.parameters['beta'].maximum}] - gamma dest {self.model.gamma} [{self.parameters['gamma'].minimum}, {self.parameters['gamma'].maximum}] - Chi-Squared Distance: {chi} - KSS: {kss}")
-            if self.metrics["chi"] is None or  chi < self.metrics["chi"]:
-                self.parameters["alpha"].value = self.model.alpha
-                self.parameters["beta"].value = self.model.beta
-                self.parameters["gamma"].value = self.model.gamma
-                self.metrics["chi"] = chi
-                self.metrics["kss"] = kss
-            # if (self.parameters["alpha"].maximum - self.parameters["alpha"].minimum) < accuracy:
-            #     alpha_fixed = True
-            # elif (self.parameters["beta"].maximum - self.parameters["beta"].minimum) < accuracy:
-            #     beta_fixed = True
-            # elif (self.parameters["gamma"].maximum - self.parameters["gamma"].minimum) < accuracy:
-            #     gamma_fixed = True
-            if accuracy != -1.0 and alpha_fixed and beta_fixed and gamma_fixed:
-                break
-            iteration += 1
+                self.model.recreate_matrix()
+                model_trips = self.model.make_trips(DEFAULT_TRAINING_TRIPS)
+                chi = chi_square_distance(get_histogram(self.real_data), get_histogram(model_trips))
+                kss = kolmogorov_smirnov_statistic(get_ccdf(self.real_data), get_ccdf(model_trips))
+                logger.info(f"Iteration {iteration} - alpha {self.model.alpha} [{self.parameters['alpha'].minimum}, {self.parameters['alpha'].maximum}] - beta home {self.model.beta} [{self.parameters['beta'].minimum}, {self.parameters['beta'].maximum}] - gamma dest {self.model.gamma} [{self.parameters['gamma'].minimum}, {self.parameters['gamma'].maximum}] - Chi-Squared Distance: {chi} - KSS: {kss}")
+                if self.metrics["chi"] is None or  chi < self.metrics["chi"]:
+                    self.parameters["alpha"].value = self.model.alpha
+                    self.parameters["beta"].value = self.model.beta
+                    self.parameters["gamma"].value = self.model.gamma
+                    self.metrics["chi"] = chi
+                    self.metrics["kss"] = kss
+                # if (self.parameters["alpha"].maximum - self.parameters["alpha"].minimum) < accuracy:
+                #     alpha_fixed = True
+                # elif (self.parameters["beta"].maximum - self.parameters["beta"].minimum) < accuracy:
+                #     beta_fixed = True
+                # elif (self.parameters["gamma"].maximum - self.parameters["gamma"].minimum) < accuracy:
+                #     gamma_fixed = True
+                if accuracy != -1.0 and alpha_fixed and beta_fixed and gamma_fixed:
+                    break
+                iteration += 1
+        except KeyboardInterrupt:
+            logger.info(f"Interrupted Training during iteration {iteration}")
         end_time = time.time()
         logger.critical(f"Total Training time: {end_time-start_time}s")
         logger.critical(f"Best results with: alpha, beta, gamma = {self.parameters['alpha'].value}, {self.parameters['beta'].value}, {self.parameters['gamma'].value} - Chi-Squared Distance: {self.metrics["chi"]} - KSS: {self.metrics["kss"]}")
