@@ -11,6 +11,10 @@ from gravity_model.models.basic import GravityModel
 from gravity_model.models.power import PowerGravityModel
 from gravity_model.models.doublepower import DoublePowerGravityModel
 from gravity_model.models.triplepower import TriplePowerGravityModel
+from gravity_model.models.expo import ExponentialGravityModel
+from gravity_model.models.doubleexpo import DoubleExponentialGravityModel
+from gravity_model.models.tripleexpo import TripleExponentialGravityModel
+from gravity_model.models.expower import ExponentialPowerGravityModel
 
 
 @click.command()
@@ -35,7 +39,18 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, optimiz
         model = DoublePowerGravityModel(locs, default_parameter.get("alpha", 1.0), default_parameter.get("beta", 1.0))
     elif model_type is ModelType.TRIPLEPOWER:
         model = TriplePowerGravityModel(locs, default_parameter.get("alpha", 1.0), default_parameter.get("beta", 1.0), default_parameter.get("gamma", 1.0))
+    elif model_type is ModelType.EXPO:
+        model = ExponentialGravityModel(locs, default_parameter.get("alpha", 0.01))
+    elif model_type is ModelType.DOUBLEEXPO:
+        model = DoubleExponentialGravityModel(locs, default_parameter.get("alpha", 0.01), default_parameter.get("beta", 0.01))
+    elif model_type is ModelType.TRIPLEEXPO:
+        model = TripleExponentialGravityModel(locs, default_parameter.get("alpha", 0.01), default_parameter.get("beta", 0.01), default_parameter.get("gamma", 0.01))
+    elif model_type is ModelType.EXPOWER:
+        model = ExponentialPowerGravityModel(locs, default_parameter.get("alpha", 1.0), default_parameter.get("beta", 0.01))
 
+
+    if not model:
+        logger.critical(f"Failed to instantiate a model of type {model_type}")
 
     if model and optimize:
         logger.info(f"Starting Training...")
@@ -43,13 +58,21 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, optimiz
         target_trips = TripContainer.from_csv(optimize)
         if model_type is ModelType.BASIC:
             model.train(target_trips, 1)
-        if model_type is ModelType.POWER:
+        elif model_type is ModelType.POWER:
             model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 5.0, 1.0)})
-        if model_type is ModelType.DOUBLEPOWER:
+        elif model_type is ModelType.DOUBLEPOWER:
             model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.1, 5.0, 1.0)})
-        if model_type is ModelType.TRIPLEPOWER:
+        elif model_type is ModelType.TRIPLEPOWER:
             model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.1, 5.0, 1.0), "gamma": (0.1, 5.0, 1.0)})
-    
+        elif model_type is ModelType.EXPO:
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, parameters={"alpha": (0.001, 0.5, 0.01)})
+        elif model_type is ModelType.DOUBLEEXPO:
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, parameters={"alpha": (0.001, 0.5, 0.01), "beta": (0.001, 0.5, 0.01)})
+        elif model_type is ModelType.TRIPLEEXPO:
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, parameters={"alpha": (0.001, 0.5, 0.01), "beta": (0.001, 0.5, 0.01), "gamma": (0.001, 0.5, 0.01)})
+        elif model_type is ModelType.EXPOWER:
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.001, 0.5, 0.01)})
+
     logger.info(f"Storing model at {model_output.absolute().as_posix()}")
     model.to_json(model_output)
 

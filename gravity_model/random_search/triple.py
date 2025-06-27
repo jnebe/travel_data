@@ -13,7 +13,7 @@ class AlphaBetaGammaRandomSearch():
         self.model = model
         self.real_data = desired
         self.parameters: dict[str, Parameter] = {}
-        self.metrics: dict[str, float] = { "chi" : None }
+        self.metrics: dict[str, float] = { "chi" : None, "kss" : None }
         for name, value in parameters.items():
             self.parameters[name] = Parameter(name, value[2], value[0], value[1])
 
@@ -31,12 +31,14 @@ class AlphaBetaGammaRandomSearch():
             self.model.recreate_matrix()
             model_trips = self.model.make_trips(DEFAULT_TRAINING_TRIPS)
             chi = chi_square_distance(get_histogram(self.real_data), get_histogram(model_trips))
-            logger.info(f"Iteration {iteration} - alpha {self.model.alpha} [{self.parameters["alpha"].minimum}, {self.parameters["alpha"].maximum}] - beta home {self.model.beta[0]} [{self.parameters["beta"].minimum}, {self.parameters["beta"].maximum}] - gamma dest {self.model.beta[1]} [{self.parameters["gamma"].minimum}, {self.parameters["gamma"].maximum}] - Chi-Squared Distance: {chi}")
+            kss = kolmogorov_smirnov_statistic(get_ccdf(self.real_data), get_ccdf(model_trips))
+            logger.info(f"Iteration {iteration} - alpha {self.model.alpha} [{self.parameters['alpha'].minimum}, {self.parameters['alpha'].maximum}] - beta home {self.model.beta} [{self.parameters['beta'].minimum}, {self.parameters['beta'].maximum}] - gamma dest {self.model.gamma} [{self.parameters['gamma'].minimum}, {self.parameters['gamma'].maximum}] - Chi-Squared Distance: {chi} - KSS: {kss}")
             if self.metrics["chi"] is None or  chi < self.metrics["chi"]:
                 self.parameters["alpha"].value = self.model.alpha
-                self.parameters["beta"].value = self.model.beta[0]
-                self.parameters["gamma"].value = self.model.beta[1]
+                self.parameters["beta"].value = self.model.beta
+                self.parameters["gamma"].value = self.model.gamma
                 self.metrics["chi"] = chi
+                self.metrics["kss"] = kss
             if (self.parameters["alpha"].maximum - self.parameters["alpha"].minimum) < accuracy:
                 alpha_fixed = True
             if (self.parameters["beta"].maximum - self.parameters["beta"].minimum) < accuracy and \
@@ -47,7 +49,7 @@ class AlphaBetaGammaRandomSearch():
             iteration += 1
         end_time = time.time()
         logger.critical(f"Total Training time: {end_time-start_time}s")
-        logger.critical(f"Best results with: alpha, beta, gamma= {self.parameters["alpha"].value}, {self.parameters["beta"].value}, {self.parameters["gamma"].value} - Chi-Squared Distance: {self.metrics["chi"]}")
+        logger.critical(f"Best results with: alpha, beta, gamma = {self.parameters['alpha'].value}, {self.parameters['beta'].value}, {self.parameters['gamma'].value} - Chi-Squared Distance: {self.metrics["chi"]} - KSS: {self.metrics["kss"]}")
 
     def apply(self):
         self.model.alpha = self.parameters["alpha"].value

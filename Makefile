@@ -1,6 +1,6 @@
 .PHONE: full eval
 
-TRAIN_DEPS = ./train.py ./gravity_model/ars.py ./gravity_model/training.py loc_data.csv real_output.csv
+TRAIN_DEPS = ./train.py ./gravity_model/random_search/*.py ./gravity_model/training.py loc_data.csv real_output.csv
 RUN_DEPS = ./run.py
 EVAL_DEPS = ./eval.py real_output.csv
 

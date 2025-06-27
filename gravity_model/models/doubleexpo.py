@@ -1,13 +1,17 @@
+from math import exp
+from sys import float_info
 from . import ModelType
-from .power import PowerGravityModel
-from ..ars import DoublePowerRandomSearch
+from .expo import ExponentialGravityModel
+from ..random_search.double import AlphaBetaRandomSearch
 from ..trip import Trip, TripContainer
 from ..log import logger
 
-class DoublePowerGravityModel(PowerGravityModel):
+class DoubleExponentialGravityModel(ExponentialGravityModel):
 
     def gravity(self, trip: Trip):
-        return ((trip.locations[0].population ** self.beta) * (trip.locations[1].population ** self.beta)) / (trip.distance.kilometers ** self.alpha)
+        numerator = exp(-self.beta * trip.locations[0].population) * exp(-self.beta * trip.locations[1].population)
+        denominator = exp(-self.alpha * trip.distance.kilometers)
+        return max(numerator, float_info.min) / max(denominator, float_info.min)
 
     def __init__(self, locations, alpha: float = 1.0, beta: float = 1.0, minimum_distance: int = 100):
         self.beta = beta
@@ -15,7 +19,7 @@ class DoublePowerGravityModel(PowerGravityModel):
         super().__init__(locations, alpha, minimum_distance)
 
     def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1):
-        ars = DoublePowerRandomSearch(self, desired, parameters)
+        ars = AlphaBetaRandomSearch(self, desired, parameters)
         ars.train(iterations, accuracy)
         ars.apply()
 

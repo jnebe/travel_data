@@ -1,15 +1,18 @@
 from . import ModelType
 from .basic import GravityModel
-from ..random_search.expo import ExponentialRandomSearch
+from ..random_search.single import AlphaRandomSearch
 from ..trip import Trip, TripContainer
 from ..log import logger
+
+from sys import float_info
 
 from math import exp
 
 class ExponentialGravityModel(GravityModel):
 
     def gravity(self, trip: Trip):
-        return (trip.locations[0].population * trip.locations[1].population) / exp(-self.alpha * trip.distance.kilometers)
+        denominator = exp(-self.alpha * trip.distance.kilometers)
+        return (trip.locations[0].population * trip.locations[1].population) * max(denominator, float_info.min)
 
     def __init__(self, locations, alpha: float = 1.0, minimum_distance: int = 100):
         self.alpha = alpha
@@ -17,7 +20,7 @@ class ExponentialGravityModel(GravityModel):
         super().__init__(locations, minimum_distance)
 
     def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1):
-        ars = PowerRandomSearch(self, desired, parameters)
+        ars = AlphaRandomSearch(self, desired, parameters)
         ars.train(iterations, accuracy)
         ars.apply()
 

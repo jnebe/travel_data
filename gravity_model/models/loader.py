@@ -1,5 +1,5 @@
 from pathlib import Path
-from jsonpickle import encode, decode
+from jsonpickle import decode
 
 from .basic import GravityModel
 from .power import PowerGravityModel

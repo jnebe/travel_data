@@ -2,6 +2,8 @@ from itertools import product
 from random import choices
 from pathlib import Path
 
+from jsonpickle import encode
+
 from . import Gravity, ModelType
 from ..location import LocationContainer
 from ..trip import Trip, TripContainer
