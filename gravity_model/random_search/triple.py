@@ -22,6 +22,7 @@ class AlphaBetaGammaRandomSearch():
         iteration = 0
         alpha_fixed = False
         beta_fixed = False
+        gamma_fixed = False
         
         while (iteration < iterations and iterations != -1):
             self.model.alpha = random.uniform(self.parameters["alpha"].minimum, self.parameters["alpha"].maximum)
@@ -41,10 +42,11 @@ class AlphaBetaGammaRandomSearch():
                 self.metrics["kss"] = kss
             if (self.parameters["alpha"].maximum - self.parameters["alpha"].minimum) < accuracy:
                 alpha_fixed = True
-            if (self.parameters["beta"].maximum - self.parameters["beta"].minimum) < accuracy and \
-                (self.parameters["gamma"].maximum - self.parameters["gamma"].minimum) < accuracy:
+            elif (self.parameters["beta"].maximum - self.parameters["beta"].minimum) < accuracy:
                 beta_fixed = True
-            if accuracy != -1.0 and alpha_fixed and beta_fixed:
+            elif (self.parameters["gamma"].maximum - self.parameters["gamma"].minimum) < accuracy:
+                gamma_fixed = True
+            if accuracy != -1.0 and alpha_fixed and beta_fixed and gamma_fixed:
                 break
             iteration += 1
         end_time = time.time()
