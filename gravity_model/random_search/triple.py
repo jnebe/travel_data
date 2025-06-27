@@ -40,12 +40,12 @@ class AlphaBetaGammaRandomSearch():
                 self.parameters["gamma"].value = self.model.gamma
                 self.metrics["chi"] = chi
                 self.metrics["kss"] = kss
-            if (self.parameters["alpha"].maximum - self.parameters["alpha"].minimum) < accuracy:
-                alpha_fixed = True
-            elif (self.parameters["beta"].maximum - self.parameters["beta"].minimum) < accuracy:
-                beta_fixed = True
-            elif (self.parameters["gamma"].maximum - self.parameters["gamma"].minimum) < accuracy:
-                gamma_fixed = True
+            # if (self.parameters["alpha"].maximum - self.parameters["alpha"].minimum) < accuracy:
+            #     alpha_fixed = True
+            # elif (self.parameters["beta"].maximum - self.parameters["beta"].minimum) < accuracy:
+            #     beta_fixed = True
+            # elif (self.parameters["gamma"].maximum - self.parameters["gamma"].minimum) < accuracy:
+            #     gamma_fixed = True
             if accuracy != -1.0 and alpha_fixed and beta_fixed and gamma_fixed:
                 break
             iteration += 1
