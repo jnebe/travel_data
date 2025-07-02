@@ -22,31 +22,32 @@ from gravity_model.models.expower import ExponentialPowerGravityModel
 @click.argument("model_output", metavar="[Model Output]", type=click.Path(readable=True, dir_okay=False, path_type=Path))
 @click.argument("model_type", metavar="[Model Type]", type=click.Choice(ModelType, case_sensitive=False))
 @click.option("-i", "--iterations", type=int, default=100)
+@click.option("-m", "--metric", type=str, default="chi")
 @click.option("--optimize", type=click.Path(exists=True, readable=True, dir_okay=False, path_type=Path))
-@click.option("-d", "--default-parameter", type=(str, float), multiple=True)
-def main(location_data: Path, model_output: Path, model_type: ModelType, optimize: Path, iterations: int,  default_parameter: list[tuple[str, float]]):
+@click.option("--default-parameters", type=(str, float), multiple=True)
+def main(location_data: Path, model_output: Path, model_type: ModelType, optimize: Path, iterations: int, metric: str, default_parameters: dict[str, float]):
     logger.info(f"Loading location data from {location_data.absolute().as_posix()}")
     locs = LocationContainer.from_csv(location_data)
-    default_parameter = dict(default_parameter)
+    default_parameters = dict(default_parameters)
 
     logger.info(f"Instantiating model {model_type}")
     model = None
     if model_type is ModelType.BASIC:
         model = GravityModel(locs)
     elif model_type is ModelType.POWER:
-        model = PowerGravityModel(locs, default_parameter.get("alpha", 1.0))
+        model = PowerGravityModel(locs, default_parameters.get("alpha", 1.0))
     elif model_type is ModelType.DOUBLEPOWER:
-        model = DoublePowerGravityModel(locs, default_parameter.get("alpha", 1.0), default_parameter.get("beta", 1.0))
+        model = DoublePowerGravityModel(locs, default_parameters.get("alpha", 1.0), default_parameters.get("beta", 1.0))
     elif model_type is ModelType.TRIPLEPOWER:
-        model = TriplePowerGravityModel(locs, default_parameter.get("alpha", 1.0), default_parameter.get("beta", 1.0), default_parameter.get("gamma", 1.0))
+        model = TriplePowerGravityModel(locs, default_parameters.get("alpha", 1.0), default_parameters.get("beta", 1.0), default_parameters.get("gamma", 1.0))
     elif model_type is ModelType.EXPO:
-        model = ExponentialGravityModel(locs, default_parameter.get("alpha", 0.01))
+        model = ExponentialGravityModel(locs, default_parameters.get("alpha", 0.01))
     elif model_type is ModelType.DOUBLEEXPO:
-        model = DoubleExponentialGravityModel(locs, default_parameter.get("alpha", 0.01), default_parameter.get("beta", 0.01))
+        model = DoubleExponentialGravityModel(locs, default_parameters.get("alpha", 0.01), default_parameters.get("beta", 0.01))
     elif model_type is ModelType.TRIPLEEXPO:
-        model = TripleExponentialGravityModel(locs, default_parameter.get("alpha", 0.01), default_parameter.get("beta", 0.01), default_parameter.get("gamma", 0.01))
+        model = TripleExponentialGravityModel(locs, default_parameters.get("alpha", 0.01), default_parameters.get("beta", 0.01), default_parameters.get("gamma", 0.01))
     elif model_type is ModelType.EXPOWER:
-        model = ExponentialPowerGravityModel(locs, default_parameter.get("alpha", 1.0), default_parameter.get("beta", 0.01))
+        model = ExponentialPowerGravityModel(locs, default_parameters.get("alpha", 1.0), default_parameters.get("beta", 0.01))
 
 
     if not model:
@@ -57,21 +58,21 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, optimiz
         logger.info(f"Loading desired output data from {optimize.absolute().as_posix()}")
         target_trips = TripContainer.from_csv(optimize)
         if model_type is ModelType.BASIC:
-            model.train(target_trips, 1)
+            model.train(target_trips)
         elif model_type is ModelType.POWER:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 5.0, 1.0)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, metric=metric, parameters={"alpha": (0.1, 5.0, 1.0)})
         elif model_type is ModelType.DOUBLEPOWER:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.1, 5.0, 1.0)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, metric=metric, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.1, 5.0, 1.0)})
         elif model_type is ModelType.TRIPLEPOWER:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.1, 5.0, 1.0), "gamma": (0.1, 5.0, 1.0)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, metric=metric, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.1, 5.0, 1.0), "gamma": (0.1, 5.0, 1.0)})
         elif model_type is ModelType.EXPO:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, parameters={"alpha": (0.001, 0.5, 0.01)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, metric=metric, parameters={"alpha": (0.001, 0.5, 0.01)})
         elif model_type is ModelType.DOUBLEEXPO:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, parameters={"alpha": (0.001, 0.5, 0.01), "beta": (0.001, 0.5, 0.01)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, metric=metric, parameters={"alpha": (0.001, 0.5, 0.01), "beta": (0.001, 0.5, 0.01)})
         elif model_type is ModelType.TRIPLEEXPO:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, parameters={"alpha": (0.001, 0.5, 0.01), "beta": (0.001, 0.5, 0.01), "gamma": (0.001, 0.5, 0.01)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, metric=metric, parameters={"alpha": (0.001, 0.5, 0.01), "beta": (0.001, 0.5, 0.01), "gamma": (0.001, 0.5, 0.01)})
         elif model_type is ModelType.EXPOWER:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.001, 0.5, 0.01)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, metric=metric, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.001, 0.5, 0.01)})
 
     logger.info(f"Storing model at {model_output.absolute().as_posix()}")
     model.to_json(model_output)

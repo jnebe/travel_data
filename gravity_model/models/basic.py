@@ -7,7 +7,7 @@ from jsonpickle import encode
 from . import Gravity, ModelType
 from ..location import LocationContainer
 from ..trip import Trip, TripContainer
-from ..training import total_variation_distance, chi_square_distance, histogram_intersection_kernel
+from ..training import total_variation_distance, chi_square_distance, histogram_intersection_kernel, get_ccdf, get_histogram
 from ..log import logger
 
 class GravityModel():
@@ -15,6 +15,9 @@ class GravityModel():
     def __init__(self, locations: LocationContainer, minimum_distance: int = 100):
         self.matrix: dict[Trip, Gravity] = {}
         self.total_gravity: Gravity = 0.0
+
+        self.chi = -1
+        self.kss = -1
 
         for loc_a, loc_b in product(locations.locations, repeat=2):
             if loc_a == loc_b:
@@ -37,11 +40,11 @@ class GravityModel():
             self.matrix[trip] = gravity
             self.total_gravity += gravity
 
-    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float]], iterations: int = -1, accuracy: float = 0.1, ):
+    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float]], iterations: int = -1, accuracy: float = 0.1, metric: str = "chi"):
         model_trips = self.make_trips(1000000)
         tvd = total_variation_distance(desired, model_trips)
-        chi = chi_square_distance(desired.get_histogram(), model_trips.get_histogram())
-        hik = histogram_intersection_kernel(desired.get_histogram(), model_trips.get_histogram())
+        chi = chi_square_distance(get_histogram(desired), get_histogram(model_trips))
+        hik = histogram_intersection_kernel(get_histogram(desired), get_histogram(model_trips))
         logger.critical(f"TVD: {tvd}")
         logger.critical(f"CHI^2: {chi}")
         logger.critical(f"HIK: {hik}")
@@ -64,7 +67,7 @@ class GravityModel():
         {
             "type": ModelType.BASIC,
             "total": self.total_gravity,
-            "matrix": self.matrix_as_tuples()
+            "matrix": self.matrix_as_tuples(),
         }
 
     def __setstate__(self, state: dict):

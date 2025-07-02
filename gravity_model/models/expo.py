@@ -19,9 +19,9 @@ class ExponentialGravityModel(GravityModel):
         # Call the super-constructor last, because that will start the matrix generation, for which all parameters must be set!!!
         super().__init__(locations, minimum_distance)
 
-    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1):
+    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1, metric: str = "chi"):
         ars = AlphaRandomSearch(self, desired, parameters)
-        ars.train(iterations, accuracy)
+        ars.train(iterations, accuracy, metric)
         ars.apply()
 
     def __getstate__(self):

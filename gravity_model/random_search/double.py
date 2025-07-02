@@ -17,7 +17,7 @@ class AlphaBetaRandomSearch():
         for name, value in parameters.items():
             self.parameters[name] = Parameter(name, value[2], value[0], value[1])
 
-    def train(self, iterations: int = 100, accuracy: float = -1.0):
+    def train(self, iterations: int = 100, accuracy: float = -1.0, metric: str = "chi"):
         start_time = time.time()
         iteration = 0
         alpha_fixed = False
@@ -31,16 +31,13 @@ class AlphaBetaRandomSearch():
                 model_trips = self.model.make_trips(DEFAULT_TRAINING_TRIPS)
                 chi = chi_square_distance(get_histogram(self.real_data), get_histogram(model_trips))
                 kss = kolmogorov_smirnov_statistic(get_ccdf(self.real_data), get_ccdf(model_trips))
+                current_metrics = { "chi" : chi, "kss" : kss }
                 logger.info(f"Iteration {iteration} - alpha {self.model.alpha} [{self.parameters["alpha"].minimum}, {self.parameters["alpha"].maximum}] - beta {self.model.beta} [{self.parameters["beta"].minimum}, {self.parameters["beta"].maximum}] - Chi-Squared Distance: {chi} - KSS: {kss}")
-                if self.metrics["chi"] is None or  chi < self.metrics["chi"]:
+                if self.metrics[metric] is None or current_metrics[metric] < self.metrics[metric]:
                     self.parameters["alpha"].value = self.model.alpha
                     self.parameters["beta"].value = self.model.beta
                     self.metrics["chi"] = chi
                     self.metrics["kss"] = kss
-                # if (self.parameters["alpha"].maximum - self.parameters["alpha"].minimum) < accuracy:
-                #     alpha_fixed = True
-                # if (self.parameters["beta"].maximum - self.parameters["beta"].minimum) < accuracy:
-                #     beta_fixed = True
                 if accuracy != -1.0 and alpha_fixed and beta_fixed:
                     logger.info("Reached accuracy goals during training. Finishing...")
                     break
