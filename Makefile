@@ -1,7 +1,11 @@
-.PHONE: full eval
+.PHONY: full eval
 
+# Files that need to exist for the training app to work
+# + if they are newer then the results we should probably rerun the commands
 TRAIN_DEPS = ./train.py ./gravity_model/random_search/*.py ./gravity_model/training.py loc_data.csv real_output.csv
+# The same but for run.py
 RUN_DEPS = ./run.py
+# The same but for eval.py
 EVAL_DEPS = ./eval.py real_output.csv
 
 CMD_PREFIX := $(shell if command -v uv >/dev/null 2>&1; then echo "uv run"; else echo "python"; fi)

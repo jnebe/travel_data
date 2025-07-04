@@ -18,6 +18,8 @@ from gravity_model.distance import LATypes, BallTreeLocationAssigner, BeeLineLoc
 def main(location_data: Path, raw_data: Path, loc_assigner_type:LATypes, results_output: Path, keep_distance: bool, drop: bool):
     logger.info(f"Loading location data from {location_data.absolute().as_posix()}")
     locs = LocationContainer.from_csv(location_data)
+    
+    # Depending on the loc_assigner_type choosen by the user we initialze one
     if loc_assigner_type is LATypes.BALLTREE:
         loc_assigner = BallTreeLocationAssigner(locs)
         logger.info("Using Ball Tree to assign celltowers to Locations!")
@@ -37,6 +39,8 @@ def main(location_data: Path, raw_data: Path, loc_assigner_type:LATypes, results
         {"start_lat": "home_coord_x", "start_long": "home_coord_y", "stop_lat": "dest_coord_x", "stop_long": "dest_coord_y", "number": "frequency"},
         keep_distance=keep_distance, min_distance=100 if drop else 0
     )
+    # We double check that we properly filtered all trips that are shorter than 100km
+    logger.info(f"Checking that we properly dropped all trips shorter than 100km...")
     min_dist = trips.df.select(pl.col("distance").min()).item()
     if drop and min_dist < 100:
         raise RuntimeError(f"The drop flag is set, but the shortest trip is shorter than 100km long! ({min_dist})")

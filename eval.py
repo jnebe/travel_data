@@ -6,7 +6,7 @@ import click
 
 from gravity_model.log import logger
 from gravity_model.trip import TripContainer
-from gravity_model.visualize import visualize, vis_types
+from gravity_model.visualize import set_dpi, visualize, vis_types
 from gravity_model.training import chi_square_distance, kolmogorov_smirnov_statistic, get_histogram, get_ccdf
 
 @click.command()
@@ -16,11 +16,14 @@ from gravity_model.training import chi_square_distance, kolmogorov_smirnov_stati
 @click.argument("results_output", metavar="[Evaluation Output]", type=click.Path(readable=True, dir_okay=True, file_okay=False, path_type=Path))
 @click.argument("prefix", metavar="[Prefix]", type=str)
 def main(trip_location: Path, compare: tuple[Path, str], error: bool, results_output: Path, prefix: str):
-    logger.info(f"Loading trip data from {trip_location.absolute().as_posix()}")
+    logger.info("Configuring dpi values...")
+    set_dpi(1200, 1200)
+
+    logger.info(f"Loading model trip data from {trip_location.absolute().as_posix()}")
     trips = TripContainer.from_csv(trip_location)
 
     if compare:
-        logger.info(f"Loading trip data from  {compare[0].absolute().as_posix()}")
+        logger.info(f"Loading real trip data from  {compare[0].absolute().as_posix()}")
         comparison = TripContainer.from_csv(compare[0])
 
     logger.info(f"Visualizing trips...")
@@ -32,6 +35,7 @@ def main(trip_location: Path, compare: tuple[Path, str], error: bool, results_ou
             visualize(current_visualization_type, [comparison.df, trips.df], output_directory=results_output, prefix=f"{compare[1]}_{prefix}")
 
     if compare and error:
+        logger.info("Calculating error values...")
         import json
         chi = chi_square_distance(get_histogram(trips), get_histogram(comparison))
         kss = kolmogorov_smirnov_statistic(get_ccdf(trips), get_ccdf(comparison))

@@ -209,16 +209,25 @@ class LocationLoader():
 
     @staticmethod
     def from_csv(boundaries: Path | str, population: Path | str, boundaries_schema: dict[str, str], population_schema: dict[str, str], silent: bool = False):
+        # We only work with with Path objects so if they are not already, we convert them
         if isinstance(boundaries, str):
             boundaries = Path(boundaries)
         if isinstance(population, str):
             population = Path(population)
+        # We read both the boundaries and the population data from their respective csv files
         boundariesDf = pl.read_csv(boundaries, infer_schema_length=None)
         populationDf = pl.read_csv(population, infer_schema_length=None)
+        # We have two maps, that provide us with the column names to be used
         bIndex, bName, bLat, bLong, bArea = boundaries_schema.get("index"), boundaries_schema.get("name"), boundaries_schema.get("lat"), boundaries_schema.get("long"), boundaries_schema.get("area")
         pIndex, pPopulation = population_schema.get("index"), population_schema.get("population")
+        # We can now use the column names instead of hardcoding them
 
+        # We join both dataframes in a way that the boundaries determine the resulting dataframe,
+        # if there are additional population entries, we ignore them
+        # if there is no population entry for a administrative area, we throw an error
+        # we join them on the index, which is (in our case) the LAD24CD number
         combinedDf = boundariesDf.join(populationDf, how="left", left_on=bIndex, right_on=pIndex)
+        
         locations = []
         for row in tqdm.tqdm(combinedDf.iter_rows(named=True), desc="Loading Locations", total=combinedDf.height, disable=silent):
             locations.append(Location(row[bName], row[bIndex], row[bLat], row[bLong], row[bArea] / (1000000), row[pPopulation]))
