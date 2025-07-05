@@ -226,9 +226,43 @@ def plot_azimuth_windrose(azimuths, num_bins=36):
     plt.tight_layout()
     plt.show()
 
+def plot_trip_endpoints_heatmap(funkturm_data, uk_data):
+    home_points = pd.DataFrame()
+    home_points['lon'] = funkturm_data['home_coord_y']
+    home_points['lat'] = funkturm_data['home_coord_x']
+
+    dest_points = pd.DataFrame()
+    dest_points['lon'] = funkturm_data['dest_coord_y']
+    dest_points['lat'] = funkturm_data['dest_coord_x']
+
+    all_points = pd.concat([home_points, dest_points], ignore_index=True)
+
+    # Karte vorbereiten
+    fig, ax = plt.subplots(figsize=(12, 8))
+    uk_data.plot(ax=ax, color='lightgrey')
+
+    # KDE-Heatmap
+    sns.kdeplot(
+        x=all_points['lon'],
+        y=all_points['lat'],
+        ax=ax,
+        cmap="Reds",
+        fill=True,
+        bw_adjust=0.2,
+        alpha=0.6,
+        thresh=0.05
+    )
+
+    plt.title('Heatmap der Start- und Zielpunkte von Trips startend in London', fontsize=14)
+    ax.set_xlim([-10, 4])
+    ax.set_ylim([49, 61])
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == "__main__":
     # CSV-Datei mit Funkturmdaten einlesen
-    funkturm_data = pd.read_csv('path_to_csv_with_data')
+    funkturm_data = pd.read_csv('path_to_csv_data')
     funkturm_gdf = create_funkturm_gdf(funkturm_data)
 
     # GeoJSON-Datei einlesen
@@ -238,11 +272,14 @@ if __name__ == "__main__":
     # plot_funkturm_heatmap(funkturm_gdf, base_map)
 
     # # random Sample, da sonst zu voll
-    sampled_data = funkturm_data.sample(n=10000, random_state=42)
+    # sampled_data = funkturm_data.sample(n=10000, random_state=42)
     # trip_lines_gdf = create_trip_lines(sampled_data)
     # plot_trip_lines(trip_lines_gdf, base_map)
 
-    azimuths = calculate_trip_azimuths(sampled_data)
+    london_trips = filter_trips_starting_in_london(funkturm_data)
+    plot_trip_endpoints_heatmap(london_trips, base_map)
 
-    plot_azimuth_windrose(azimuths)
+    #azimuths = calculate_trip_azimuths(sampled_data)
+
+    # plot_azimuth_windrose(azimuths)
 
