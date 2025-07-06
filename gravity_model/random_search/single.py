@@ -5,11 +5,11 @@ from ..training import Parameter, chi_square_distance, get_histogram, kolmogorov
 from ..trip import TripContainer
 from ..log import logger
 
-from . import DEFAULT_TRAINING_TRIPS
+from . import DEFAULT_TRAINING_TRIPS, FINAL_TRAINING_TRIPS
 
 class AlphaRandomSearch():
 
-    def __init__(self, model: "PowerGravityModel", desired: TripContainer, parameters: dict[str, tuple[float, float, float]]):
+    def __init__(self, model, desired: TripContainer, parameters: dict[str, tuple[float, float, float]]):
         self.model = model
         self.real_data = desired
         self.parameters: dict[str, Parameter] = {}
@@ -20,12 +20,12 @@ class AlphaRandomSearch():
     def train(self, iterations: int = 100, accuracy: float = -1.0, metric: str = "chi"):
         start_time = time.time()
         iteration = 0
-        
+        current_accuracy = self.parameters["alpha"].maximum - self.parameters["alpha"].minimum
         try:
             while (iteration < iterations and iterations != -1):
                 self.model.alpha = random.uniform(self.parameters["alpha"].minimum, self.parameters["alpha"].maximum)
                 self.model.recreate_matrix()
-                model_trips: TripContainer = self.model.make_trips(DEFAULT_TRAINING_TRIPS)
+                model_trips: TripContainer = self.model.make_trips(DEFAULT_TRAINING_TRIPS) if current_accuracy > 8*accuracy else self.model.make_trips(FINAL_TRAINING_TRIPS)
                 chi = chi_square_distance(get_histogram(self.real_data), get_histogram(model_trips))
                 kss = kolmogorov_smirnov_statistic(get_ccdf(self.real_data), get_ccdf(model_trips))
                 current_metrics = { "chi" : chi, "kss" : kss }
@@ -35,11 +35,17 @@ class AlphaRandomSearch():
                         self.parameters["alpha"].maximum = self.model.alpha
                     if self.model.alpha < self.parameters["alpha"].value:
                         self.parameters["alpha"].minimum = self.model.alpha
+                if (self.metrics[metric] is not None) and current_metrics[metric] < self.metrics[metric]:
+                    if self.model.alpha < self.parameters["alpha"].value:
+                        self.parameters["alpha"].maximum = self.parameters["alpha"].value
+                    if self.model.alpha > self.parameters["alpha"].value:
+                        self.parameters["alpha"].minimum = self.parameters["alpha"].value
                 if self.metrics[metric] is None or current_metrics[metric] < self.metrics[metric]:
                     self.parameters["alpha"].value = self.model.alpha
                     self.metrics["chi"] = chi
                     self.metrics["kss"] = kss
-                if accuracy != -1.0 and (self.parameters["alpha"].maximum - self.parameters["alpha"].minimum) < accuracy:
+                current_accuracy = self.parameters["alpha"].maximum - self.parameters["alpha"].minimum
+                if accuracy != -1.0 and current_accuracy < accuracy:
                     break
                 iteration += 1
         except KeyboardInterrupt:

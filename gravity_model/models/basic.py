@@ -54,6 +54,7 @@ class GravityModel():
         return list(self.matrix.keys())
 
     def make_trips(self, n: int) -> TripContainer:
+        logger.info(f"Generating {n} trips...")
         return TripContainer(choices(list(self.matrix.keys()), weights=list(self.matrix.values()), k=n))
     
     def matrix_as_tuples(self) -> list[tuple[Trip, Gravity]]:

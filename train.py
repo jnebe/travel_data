@@ -3,6 +3,7 @@ from pathlib import Path
 
 import click
 
+from gravity_model.random_search import POWER_LAW_TUPLE, EXPONENTIAL_TUPLE, POWER_LAW_DIST_TUPLE, POWER_LAW_POP_TUPLE
 from gravity_model.log import logger
 from gravity_model.trip import TripContainer
 from gravity_model.location import LocationContainer
@@ -60,19 +61,19 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, optimiz
         if model_type is ModelType.BASIC:
             model.train(target_trips)
         elif model_type is ModelType.POWER:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, metric=metric, parameters={"alpha": (0.1, 5.0, 1.0)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.0005, metric=metric, parameters={"alpha": POWER_LAW_DIST_TUPLE})
         elif model_type is ModelType.DOUBLEPOWER:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, metric=metric, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.1, 5.0, 1.0)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.0005, metric=metric, parameters={"alpha": POWER_LAW_DIST_TUPLE, "beta": POWER_LAW_POP_TUPLE})
         elif model_type is ModelType.TRIPLEPOWER:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, metric=metric, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.1, 5.0, 1.0), "gamma": (0.1, 5.0, 1.0)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.0005, metric=metric, parameters={"alpha": POWER_LAW_DIST_TUPLE, "beta": POWER_LAW_POP_TUPLE, "gamma": POWER_LAW_POP_TUPLE})
         elif model_type is ModelType.EXPO:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, metric=metric, parameters={"alpha": (0.001, 0.5, 0.01)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.00005, metric=metric, parameters={"alpha": EXPONENTIAL_TUPLE})
         elif model_type is ModelType.DOUBLEEXPO:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, metric=metric, parameters={"alpha": (0.001, 0.5, 0.01), "beta": (0.001, 0.5, 0.01)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.00005, metric=metric, parameters={"alpha": EXPONENTIAL_TUPLE, "beta": EXPONENTIAL_TUPLE})
         elif model_type is ModelType.TRIPLEEXPO:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.001, metric=metric, parameters={"alpha": (0.001, 0.5, 0.01), "beta": (0.001, 0.5, 0.01), "gamma": (0.001, 0.5, 0.01)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.00005, metric=metric, parameters={"alpha": EXPONENTIAL_TUPLE, "beta": EXPONENTIAL_TUPLE, "gamma": EXPONENTIAL_TUPLE})
         elif model_type is ModelType.EXPOWER:
-            model.train(desired=target_trips, iterations=iterations, accuracy=0.01, metric=metric, parameters={"alpha": (0.1, 5.0, 1.0), "beta": (0.001, 0.5, 0.01)})
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.0005, metric=metric, parameters={"alpha": POWER_LAW_DIST_TUPLE, "beta": EXPONENTIAL_TUPLE})
 
     logger.info(f"Storing model at {model_output.absolute().as_posix()}")
     model.to_json(model_output)
