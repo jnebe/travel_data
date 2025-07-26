@@ -1,8 +1,8 @@
-.PHONY: full eval
+.PHONY: full-% %-eval
 
 # Files that need to exist for the training app to work
 # + if they are newer then the results we should probably rerun the commands
-TRAIN_DEPS = ./train.py ./gravity_model/random_search/*.py ./gravity_model/training.py loc_data.csv real_output.csv
+TRAIN_DEPS = ./train.py ./gravity_model/search/*.py ./gravity_model/training.py loc_data.csv real_output.csv
 # The same but for run.py
 RUN_DEPS = ./run.py
 # The same but for eval.py

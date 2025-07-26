@@ -1,7 +1,6 @@
 from . import ModelType
 from .power import PowerGravityModel
-from ..random_search.double import AlphaBetaRandomSearch
-from ..trip import Trip, TripContainer
+from ..trip import Trip
 from ..log import logger
 
 class DoublePowerGravityModel(PowerGravityModel):
@@ -13,11 +12,6 @@ class DoublePowerGravityModel(PowerGravityModel):
         self.beta = beta
         # Call the super-constructor last, because that will start the matrix generation, for which all parameters must be set!!!
         super().__init__(locations, alpha, minimum_distance)
-
-    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1, metric: str = "chi"):
-        ars = AlphaBetaRandomSearch(self, desired, parameters)
-        ars.train(iterations, accuracy, metric)
-        ars.apply()
 
     def __getstate__(self):
         return \

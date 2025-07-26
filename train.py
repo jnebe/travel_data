@@ -3,7 +3,7 @@ from pathlib import Path
 
 import click
 
-from gravity_model.random_search import POWER_LAW_TUPLE, EXPONENTIAL_TUPLE, POWER_LAW_DIST_TUPLE, POWER_LAW_POP_TUPLE
+from gravity_model.search import POWER_LAW_TUPLE, EXPONENTIAL_TUPLE, POWER_LAW_DIST_TUPLE, POWER_LAW_POP_TUPLE, DISTANCE_SPLIT_TUPLE
 from gravity_model.log import logger
 from gravity_model.trip import TripContainer
 from gravity_model.location import LocationContainer
@@ -16,6 +16,7 @@ from gravity_model.models.expo import ExponentialGravityModel
 from gravity_model.models.doubleexpo import DoubleExponentialGravityModel
 from gravity_model.models.tripleexpo import TripleExponentialGravityModel
 from gravity_model.models.expower import ExponentialPowerGravityModel
+from gravity_model.models.split import SplitGravityModel
 
 
 @click.command()
@@ -49,6 +50,8 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, optimiz
         model = TripleExponentialGravityModel(locs, default_parameters.get("alpha", 0.01), default_parameters.get("beta", 0.01), default_parameters.get("gamma", 0.01))
     elif model_type is ModelType.EXPOWER:
         model = ExponentialPowerGravityModel(locs, default_parameters.get("alpha", 1.0), default_parameters.get("beta", 0.01))
+    elif model_type is ModelType.SPLIT:
+        model = SplitGravityModel(locs, default_parameters.get("alpha", 1.0), default_parameters.get("beta", 1.0), default_parameters.get("gamma", 600))
 
 
     if not model:
@@ -74,7 +77,8 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, optimiz
             model.train(desired=target_trips, iterations=iterations, accuracy=0.00005, metric=metric, parameters={"alpha": EXPONENTIAL_TUPLE, "beta": EXPONENTIAL_TUPLE, "gamma": EXPONENTIAL_TUPLE})
         elif model_type is ModelType.EXPOWER:
             model.train(desired=target_trips, iterations=iterations, accuracy=0.0005, metric=metric, parameters={"alpha": POWER_LAW_DIST_TUPLE, "beta": EXPONENTIAL_TUPLE})
-
+        elif model_type is ModelType.SPLIT:
+            model.train(desired=target_trips, iterations=iterations, accuracy=0.0005, metric=metric, parameters={"alpha": POWER_LAW_DIST_TUPLE, "beta": POWER_LAW_DIST_TUPLE, "gamma": DISTANCE_SPLIT_TUPLE})
     logger.info(f"Storing model at {model_output.absolute().as_posix()}")
     model.to_json(model_output)
 

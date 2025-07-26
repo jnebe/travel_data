@@ -1,6 +1,6 @@
 from . import ModelType
 from .basic import GravityModel
-from ..random_search.single import AlphaRandomSearch
+from ..search.random_search import RandomSearch
 from ..trip import Trip, TripContainer
 from ..log import logger
 
@@ -15,9 +15,9 @@ class PowerGravityModel(GravityModel):
         super().__init__(locations, minimum_distance)
 
     def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1, metric: str = "chi"):
-        ars = AlphaRandomSearch(self, desired, parameters)
-        ars.train(iterations, accuracy, metric)
-        ars.apply()
+        random_search = RandomSearch(self, desired, parameters)
+        random_search.train(iterations, accuracy, metric)
+        random_search.apply()
 
     def __getstate__(self):
         return \

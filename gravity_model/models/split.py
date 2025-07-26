@@ -1,16 +1,27 @@
 from . import ModelType
-from .doublepower import DoublePowerGravityModel
-from ..trip import Trip
+from .basic import GravityModel
+from ..search.random_search import RandomSearch
+from ..trip import Trip, TripContainer
 
-class TriplePowerGravityModel(DoublePowerGravityModel):
+class SplitGravityModel(GravityModel):
 
     def gravity(self, trip: Trip):
-        return ((trip.locations[0].population ** self.beta) * (trip.locations[1].population ** self.gamma)) / (trip.distance.kilometers ** self.alpha)
+        if trip.distance.kilometers < self.gamma:
+            return (trip.locations[0].population * trip.locations[1].population) / (trip.distance.kilometers ** self.alpha)
+        else:
+            return (trip.locations[0].population * trip.locations[1].population) / (trip.distance.kilometers ** self.beta)
 
-    def __init__(self, locations, alpha: float = 1.0, beta: float = 1.0, gamma: float = 1.0, minimum_distance: int = 100):
+    def __init__(self, locations, alpha: float = 1.0, beta: float = 1.0, gamma: int = 600, minimum_distance: int = 100):
+        self.alpha = alpha
+        self.beta = beta
         self.gamma = gamma
         # Call the super-constructor last, because that will start the matrix generation, for which all parameters must be set!!!
-        super().__init__(locations, alpha, beta, minimum_distance)
+        super().__init__(locations, minimum_distance)
+
+    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1, metric: str = "chi"):
+        random_search = RandomSearch(self, desired, parameters)
+        random_search.train(iterations, accuracy, metric)
+        random_search.apply()
 
     def __getstate__(self):
         return \

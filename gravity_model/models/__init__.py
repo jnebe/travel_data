@@ -11,5 +11,6 @@ class ModelType(enum.StrEnum):
     EXPOWER = "EXPOWER"
     DOUBLEEXPOWER = "TRIPLEEXPOWER"
     TRIPLEEXPOWER = "TRIPLEEXPOWER"
+    SPLIT = "SPLIT"
 
 Gravity = float

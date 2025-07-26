@@ -2,9 +2,7 @@ from math import exp
 from sys import float_info
 from . import ModelType
 from .doubleexpo import DoubleExponentialGravityModel
-from ..random_search.triple import AlphaBetaGammaRandomSearch
-from ..trip import Trip, TripContainer
-from ..log import logger
+from ..trip import Trip
 
 class TripleExponentialGravityModel(DoubleExponentialGravityModel):
 
@@ -17,11 +15,6 @@ class TripleExponentialGravityModel(DoubleExponentialGravityModel):
         self.gamma = gamma
         # Call the super-constructor last, because that will start the matrix generation, for which all parameters must be set!!!
         super().__init__(locations, alpha, beta, minimum_distance)
-
-    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1, metric: str = "chi"):
-        ars = AlphaBetaGammaRandomSearch(self, desired, parameters)
-        ars.train(iterations, accuracy, metric)
-        ars.apply()
 
     def __getstate__(self):
         return \
