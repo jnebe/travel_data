@@ -169,7 +169,6 @@ class TripContainer:
 
     @staticmethod
     def process_chunk(chunk: list[Trip]) -> pl.DataFrame:
-        logger.info(f"Processing chunk of {len(chunk)} trips")
         rows = [trip.to_list() for trip in chunk]
         return pl.DataFrame(
             data=rows,
@@ -180,12 +179,18 @@ class TripContainer:
     @property
     def df(self) -> pl.DataFrame:
         if self._df is None:
-            num_chunks = min(cpu_count(), max(1, (len(self._trips) // 400_000)))
+            num_chunks = min(cpu_count(), max(1, (len(self._trips) // 250_000)))
             chunks = self.chunkify(self.trips, num_chunks)
-            logger.info("Creating DataFrame from Trips")
+            logger.info(f"Creating DataFrame from Trips in {num_chunks} chunks of size {len(chunks[0])}...")
             with ProcessPoolExecutor(max_workers=cpu_count()) as executor:
-                dfs = list(executor.map(TripContainer.process_chunk, chunks))
+                try:
+                    dfs = list(executor.map(TripContainer.process_chunk, chunks))
+                except KeyboardInterrupt as e:
+                    executor.shutdown(wait=False)
+                    raise e
             self._df = pl.concat(dfs, rechunk=True)
+            
+
             logger.info(f"DataFrame created with {self._df.height} rows and {self._df.width} columns")
         return self._df
     

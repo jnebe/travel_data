@@ -28,7 +28,7 @@ class GeneticSearch:
         for name, value in individual.items():
             setattr(self.model, name, value)
         self.model.recreate_matrix()
-        trips = self.model.make_trips(DEFAULT_TRAINING_TRIPS)
+        trips = self.model.make_trips(min(self.real_data.df.height, DEFAULT_TRAINING_TRIPS))
         chi = chi_square_distance(get_histogram(self.real_data), get_histogram(trips))
         kss = kolmogorov_smirnov_statistic(get_ccdf(self.real_data), get_ccdf(trips))
         logger.info(f"Individual {individual} - Chi-Squared Distance: {chi} - KSS: {kss}")
@@ -40,28 +40,29 @@ class GeneticSearch:
     
     def train(self, iterations: int = 100, accuracy: float = -1.0, metric: str = "chi"):
         start_time = time.time()
+        num_generations = max(1, iterations // self.population_size)
         generation = 0
 
         try:
             population = [self.generate_individual() for _ in range(self.population_size)]
-            for generation in range(iterations // self.population_size):
-                logger.info(f"Generation {generation} of {iterations // self.population_size} - Population size: {len(population)}")
+            for generation in range(num_generations):
+                logger.info(f"Generation {generation + 1} of {num_generations} - Population size: {len(population)}")
                 fitness_scores = [(self.evaluate_fitness(ind, metric=metric), ind) for ind in population]
                 fitness_scores.sort(key=lambda x: x[0])
                 logger.info(f"Generation {generation} - Best fitness: {fitness_scores[0][0]}")
-                logger.info(f"Keeping the best {max(1, int(self.population_size/5))} individuals for the next generation")
-                new_population = fitness_scores[:max(1, int(self.population_size/5))]  # Elitism
+                if generation < num_generations:
+                    logger.info(f"Keeping the best {max(1, int(self.population_size/5))} individuals for the next generation")
+                    new_population = fitness_scores[:max(1, int(self.population_size/5))]  # Elitism
 
-                while len(new_population) < self.population_size:
-                    parent1 = self.tournament_select(fitness_scores)
-                    parent2 = self.tournament_select(fitness_scores)
-                    child = self.crossover(parent1, parent2)
-                    self.mutate(child)
-                    new_population.append((None, child))
+                    while len(new_population) < self.population_size:
+                        parent1 = self.tournament_select(fitness_scores)
+                        parent2 = self.tournament_select(fitness_scores)
+                        child = self.crossover(parent1, parent2)
+                        self.mutate(child)
+                        new_population.append((None, child))
 
-                population = [ind for _, ind in new_population]
+                    population = [ind for _, ind in new_population]
 
-            # Apply best
                 best = fitness_scores[0]
                 if self.fitness is None or best[0] < self.fitness:
                     individual = best[1]

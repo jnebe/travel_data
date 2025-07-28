@@ -49,7 +49,7 @@ class GravityModel():
         if search_type is SearchType.GRID:
             search = GridSearch(self, desired, parameters)
         elif search_type is SearchType.GENETIC:
-            population_size = max(10, min(30, iterations // 10))
+            population_size = max(10, min(30, iterations // 20))
             search = GeneticSearch(self, desired, parameters, population_size=population_size)
         else:
             search = RandomSearch(self, desired, parameters)
