@@ -168,7 +168,7 @@ class TripContainer:
         return [lst[i::n] for i in range(n)]
 
     @staticmethod
-    def process_chunk(chunk: list) -> pl.DataFrame:
+    def process_chunk(chunk: list[Trip]) -> pl.DataFrame:
         logger.info(f"Processing chunk of {len(chunk)} trips")
         rows = [trip.to_list() for trip in chunk]
         return pl.DataFrame(
