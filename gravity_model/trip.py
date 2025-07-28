@@ -1,12 +1,13 @@
 from pathlib import Path
+from concurrent.futures import ProcessPoolExecutor
+from os import cpu_count
 
 import polars as pl
 import tqdm
-import numpy as np
 from geopy.distance import distance
 
 from .log import logger
-from .location import Location, LocationContainer
+from .location import Location
 from .distance import BaseLocationAssigner
 
 class Trip:
@@ -53,6 +54,40 @@ class Trip:
             Location(value["end_name"], value["end_id"], value["end_lat"], value["end_long"], value["end_area"], value["end_population"])
         )
     
+    def to_dict(self) -> dict:
+        return {
+            "start_name": self.home.name,
+            "start_id": self.home.lid,
+            "start_area": self.home.area,
+            "start_population": self.home.population,
+            "start_lat": self.home.coordinates[0],
+            "start_long": self.home.coordinates[1],
+            "end_name": self.target.name,
+            "end_id": self.target.lid,
+            "end_area": self.target.area,
+            "end_population": self.target.population,
+            "end_lat": self.target.coordinates[0],
+            "end_long": self.target.coordinates[1],
+            "distance": float(self.distance.km)
+        }
+    
+    def to_list(self) -> list:
+        return [
+            self.home.name,
+            self.home.lid,
+            self.home.area,
+            self.home.population,
+            self.home.coordinates[0],
+            self.home.coordinates[1],
+            self.target.name,
+            self.target.lid,
+            self.target.area,
+            self.target.population,
+            self.target.coordinates[0],
+            self.target.coordinates[1],
+            float(self.distance.km)
+        ]
+    
     def __getstate__(self):
         return self.locations
 
@@ -73,10 +108,19 @@ class Trip:
     
 class TripContainer:
 
-    def __init__(self, results: list[Trip]):
-        self.trips = results
+    def __init__(self, results: list[Trip] | pl.DataFrame | dict[Trip, int] = None):
+        if results is None:
+            raise ValueError("TripContainer needs to be initialized with a list of Trips, a DataFrame or a dictionary of Trips!")
+        self._trips = None
         self._dictionary = None
         self._df = None
+
+        if isinstance(results, list):
+            self._trips = results
+        elif isinstance(results, pl.DataFrame):
+            self._df = results
+        elif isinstance(results, dict):
+            self._dictionary = results
 
     def append(self, trip: Trip):
         self.trips.append(trip)
@@ -119,31 +163,30 @@ class TripContainer:
         self._df = None
         self._dict = None
 
+    @staticmethod
+    def chunkify(lst, n):
+        return [lst[i::n] for i in range(n)]
+
+    @staticmethod
+    def process_chunk(chunk: list) -> pl.DataFrame:
+        logger.info(f"Processing chunk of {len(chunk)} trips")
+        rows = [trip.to_list() for trip in chunk]
+        return pl.DataFrame(
+            data=rows,
+            orient="row",
+            schema=Trip.TRIP_SCHEMA
+        )
+
     @property
     def df(self) -> pl.DataFrame:
         if self._df is None:
-            rows = [
-                [
-                trip.locations[0].name,
-                trip.locations[0].lid,
-                trip.locations[0].area,
-                trip.locations[0].population,
-                trip.locations[0].coordinates[0],
-                trip.locations[0].coordinates[1],
-                trip.locations[1].name,
-                trip.locations[1].lid,
-                trip.locations[1].area,
-                trip.locations[1].population,
-                trip.locations[1].coordinates[0],
-                trip.locations[1].coordinates[1],
-                float(trip.distance.km)
-                ]
-                for trip in self.trips
-            ]
-
-            self._df = pl.DataFrame(data=rows, orient="row",
-                schema=Trip.TRIP_SCHEMA
-            )
+            num_chunks = min(cpu_count(), max(1, (len(self._trips) // 400_000)))
+            chunks = self.chunkify(self.trips, num_chunks)
+            logger.info("Creating DataFrame from Trips")
+            with ProcessPoolExecutor(max_workers=cpu_count()) as executor:
+                dfs = list(executor.map(TripContainer.process_chunk, chunks))
+            self._df = pl.concat(dfs, rechunk=True)
+            logger.info(f"DataFrame created with {self._df.height} rows and {self._df.width} columns")
         return self._df
     
     @df.setter
