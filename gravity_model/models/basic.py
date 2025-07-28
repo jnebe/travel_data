@@ -7,8 +7,10 @@ from jsonpickle import encode
 from . import Gravity, ModelType
 from ..location import LocationContainer
 from ..trip import Trip, TripContainer
-from ..training import total_variation_distance, chi_square_distance, histogram_intersection_kernel, get_ccdf, get_histogram
+from ..search.random_search import RandomSearch
+from ..search.grid_search import GridSearch
 from ..log import logger
+from ..search import SearchType
 
 class GravityModel():
 
@@ -40,14 +42,15 @@ class GravityModel():
             self.matrix[trip] = gravity
             self.total_gravity += gravity
 
-    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float]], iterations: int = -1, accuracy: float = 0.1, metric: str = "chi"):
-        model_trips = self.make_trips(1000000)
-        tvd = total_variation_distance(desired, model_trips)
-        chi = chi_square_distance(get_histogram(desired), get_histogram(model_trips))
-        hik = histogram_intersection_kernel(get_histogram(desired), get_histogram(model_trips))
-        logger.critical(f"TVD: {tvd}")
-        logger.critical(f"CHI^2: {chi}")
-        logger.critical(f"HIK: {hik}")
+    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float]] = None, iterations: int = -1, accuracy: float = 0.1, metric: str = "chi", search_type: SearchType = SearchType.RANDOM):
+        if parameters is None:
+            parameters = {}
+        if search_type is SearchType.GRID:
+            random_search = GridSearch(self, desired, parameters)
+        else:
+            random_search = RandomSearch(self, desired, parameters)
+        random_search.train(iterations, accuracy, metric)
+        random_search.apply()
 
     @property
     def all_trips(self):

@@ -1,7 +1,9 @@
 from . import ModelType
 from .basic import GravityModel
 from ..search.random_search import RandomSearch
+from ..search.grid_search import GridSearch
 from ..trip import Trip, TripContainer
+from ..search import SearchType
 
 class SplitGravityModel(GravityModel):
 
@@ -17,11 +19,6 @@ class SplitGravityModel(GravityModel):
         self.gamma = gamma
         # Call the super-constructor last, because that will start the matrix generation, for which all parameters must be set!!!
         super().__init__(locations, minimum_distance)
-
-    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], iterations: int = 100, accuracy: float = 0.1, metric: str = "chi"):
-        random_search = RandomSearch(self, desired, parameters)
-        random_search.train(iterations, accuracy, metric)
-        random_search.apply()
 
     def __getstate__(self):
         return \

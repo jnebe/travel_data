@@ -105,3 +105,9 @@ class Parameter():
         self.value = initial
         self.minimum = minimum
         self.maximum = maximum
+
+    def get_step(self, max_steps, step: int) -> float:
+        if max_steps <= 1:
+            return 0.0
+        step_size = (self.maximum - self.minimum) / (max_steps - 1)
+        return self.minimum + step * step_size
