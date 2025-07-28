@@ -9,6 +9,7 @@ from ..location import LocationContainer
 from ..trip import Trip, TripContainer
 from ..search.random_search import RandomSearch
 from ..search.grid_search import GridSearch
+from ..search.genetic_search import GeneticSearch
 from ..log import logger
 from ..search import SearchType
 
@@ -46,11 +47,14 @@ class GravityModel():
         if parameters is None:
             parameters = {}
         if search_type is SearchType.GRID:
-            random_search = GridSearch(self, desired, parameters)
+            search = GridSearch(self, desired, parameters)
+        elif search_type is SearchType.GENETIC:
+            population_size = max(10, min(30, iterations // 10))
+            search = GeneticSearch(self, desired, parameters, population_size=population_size)
         else:
-            random_search = RandomSearch(self, desired, parameters)
-        random_search.train(iterations, accuracy, metric)
-        random_search.apply()
+            search = RandomSearch(self, desired, parameters)
+        search.train(iterations, accuracy, metric)
+        search.apply()
 
     @property
     def all_trips(self):
