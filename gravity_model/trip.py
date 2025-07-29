@@ -186,7 +186,7 @@ class TripContainer:
                 try:
                     dfs = list(executor.map(TripContainer.process_chunk, chunks))
                 except KeyboardInterrupt as e:
-                    executor.shutdown(wait=False)
+                    executor.shutdown(wait=False, cancel_futures=True)
                     raise e
             self._df = pl.concat(dfs, rechunk=True)
             
