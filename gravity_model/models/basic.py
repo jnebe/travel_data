@@ -10,6 +10,7 @@ from ..trip import Trip, TripContainer
 from ..search.random_search import RandomSearch
 from ..search.grid_search import GridSearch
 from ..search.genetic_search import GeneticSearch
+from ..search.nelder_mead import NelderMeadSearch
 from ..log import logger
 from ..search import SearchType
 
@@ -49,8 +50,10 @@ class GravityModel():
         if search_type is SearchType.GRID:
             search = GridSearch(self, desired, parameters)
         elif search_type is SearchType.GENETIC:
-            population_size = max(10, min(30, iterations // 20))
+            population_size = max(20, min(30, (iterations + 200) // 20))
             search = GeneticSearch(self, desired, parameters, population_size=population_size)
+        elif search_type is SearchType.NELDER_MEAD:
+            search = NelderMeadSearch(self, desired, parameters)
         else:
             search = RandomSearch(self, desired, parameters)
         search.train(iterations, accuracy, metric)

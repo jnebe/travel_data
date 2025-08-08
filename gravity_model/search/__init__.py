@@ -4,6 +4,7 @@ class SearchType(enum.StrEnum):
     RANDOM = "RANDOM"
     GRID = "GRID"
     GENETIC = "GENETIC"
+    NELDER_MEAD = "NELDER_MEAD"
 
 DEFAULT_TRAINING_TRIPS = 5_000_000
 

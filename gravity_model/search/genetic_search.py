@@ -31,12 +31,11 @@ class GeneticSearch:
         trips = self.model.make_trips(min(self.real_data.df.height, DEFAULT_TRAINING_TRIPS))
         chi = chi_square_distance(get_histogram(self.real_data), get_histogram(trips))
         kss = kolmogorov_smirnov_statistic(get_ccdf(self.real_data), get_ccdf(trips))
-        logger.info(f"Individual {individual} - Chi-Squared Distance: {chi} - KSS: {kss}")
         if metric == "chi":
             fitness = chi
         elif metric == "kss":
             fitness = kss
-        return fitness
+        return fitness, (chi, kss)
     
     def population_diversity(self, population: list[dict[str, float]]) -> float:
         if len(population) < 2:
@@ -54,60 +53,23 @@ class GeneticSearch:
                     maximum_pop = individual[name]
                 if minimum_pop == -1 or individual[name] < minimum_pop:
                     minimum_pop = individual[name]
-            total_distance += (maximum_pop - minimum_pop) / (param.maximum - param.minimum)
-
+            parameter_distance = (maximum_pop - minimum_pop) / (param.maximum - param.minimum)
+            if parameter_distance > 1:
+                raise RuntimeError(f"Parameter {name} has a distance of {parameter_distance} which is greater than 1.")
+            total_distance += parameter_distance
+        if total_distance > len(self.parameters):
+            raise RuntimeError(f"Total distance {total_distance} exceeds number of parameters {len(self.parameters)}")
         return total_distance / count
     
-    def train(self, iterations: int = 100, accuracy: float = -1.0, metric: str = "chi"):
-        start_time = time.time()
-        num_generations = max(1, iterations // self.population_size)
-        generation = 0
-        try:
-            population = [self.generate_individual() for _ in range(self.population_size)]
-            for generation in range(num_generations):
-                logger.info(f"Generation {generation + 1} of {num_generations} - Population size: {len(population)}")
-                fitness_scores = [(self.evaluate_fitness(ind, metric=metric), ind) for ind in population]
-                fitness_scores.sort(key=lambda x: x[0])
-                diversity = self.population_diversity(population)
-                logger.info(f"Generation {generation + 1} - Best fitness: {fitness_scores[0][0]} - Diversity: {diversity}")
-                if generation < num_generations - 1:
-                    logger.info(f"Keeping the best {max(1, int(self.population_size/5))} individuals for the next generation")
-                    new_population = fitness_scores[:max(2, int(self.population_size/10))]  # Elitism
-
-                    while len(new_population) < self.population_size:
-                        parent1 = self.tournament_select(fitness_scores, max(2, self.population_size//5))
-                        parent2 = self.tournament_select(fitness_scores, max(2, self.population_size//5))
-                        child = self.crossover(parent1, parent2)
-                        if diversity < 0.33:
-                            self.mutate(child, self.mutation_rate * 2)
-                        else:
-                            self.mutate(child, self.mutation_rate)
-                        new_population.append((None, child))
-
-                    population = [ind for _, ind in new_population]
-
-                best = fitness_scores[0]
-                if self.fitness is None or best[0] < self.fitness:
-                    individual = best[1]
-                    for name, param in self.parameters.items():
-                        param.value = individual.get(name)
-                    self.fitness = best[0]
-
-        except KeyboardInterrupt:
-            logger.info(f"Interrupted Training during generation {generation}")
-        end_time = time.time()
-        logger.info(f"Total Training time: {end_time-start_time}s")
-        logger.info(f"Best Fitness ({metric}): {self.fitness}")
-        for name, param in self.parameters.items():
-            logger.info(f"{name} = {param.value} [{param.minimum}, {param.maximum}]")
-
-    def tournament_select(self, scored_population: tuple[float, dict[str, float]], k=2, p=0.7):
-        # Sample k individuals from the population
-        tournament = random.sample(scored_population, k)
-        
-        # Sort the sampled individuals by fitness (assumes lower is better)
-        tournament.sort(key=lambda x: x[0])
-        
+    def calculate_fitness(self, population: list[dict[str, float]], metric: str = "chi") -> list[tuple[float, dict[str, float]]]:
+        fitness_scores = []
+        for individual in population:
+            fitness, metrics = self.evaluate_fitness(individual, metric=metric)
+            logger.info(f"Individual {len(fitness_scores) + 1} of {len(population)} | {self.population_size} {individual}  - Fitness: {fitness} - Metrics (chi,  KSS): {metrics}")
+            fitness_scores.append((fitness, individual))
+        return fitness_scores
+    
+    def tournament_select(self, parents: tuple[float, dict[str, float]], k=2, p=0.7):        
         # Calculate geometric weights: p * (1 - p)^i
         weights = [p * ((1 - p) ** i) for i in range(k)]
         
@@ -116,7 +78,7 @@ class GeneticSearch:
         normalized_weights = [w / total for w in weights]
         
         # Select one individual based on the weights
-        selected = random.choices(tournament, weights=normalized_weights, k=1)[0]
+        selected = random.choices(parents[:k], weights=normalized_weights, k=1)[0]
         
         return selected[1]
 
@@ -135,8 +97,76 @@ class GeneticSearch:
             roll = random.random()
             if roll < mutation_rate:
                 individual[metric] = random.uniform(parameter.minimum, parameter.maximum)
-            if roll < mutation_rate * 2:
-                individual[metric] = (individual[metric] + random.uniform(parameter.minimum, parameter.maximum)) / 2
+            elif roll < mutation_rate * 3:
+                jitter_range = (parameter.maximum - parameter.minimum) * 0.2
+                individual[metric] = random.uniform(max(parameter.minimum, individual[metric] - jitter_range), min(parameter.maximum, individual[metric] + jitter_range))
+    
+    def make_children(self, fitness_scores: list[tuple[float, dict[str, float]]], elitism: int, diversity: float) -> list[dict[str, float]]:
+        population = []
+        for homeowner in random.sample(fitness_scores[0:-1], len(fitness_scores) - (elitism + 1)): # Skip the worst individual and sample the rest (population size - elitism) from all remaining individuals)
+            # Restricted Tournament Selection
+            neighborhood = []
+            for possible_neighbor in fitness_scores[:-1]: # Skip the last individual (worst) for neighborhood selection
+                if possible_neighbor[1] != homeowner[1]:
+                    neighborhood.append((self.population_diversity([homeowner[1], possible_neighbor[1]]), possible_neighbor[1]))
+            neighborhood.sort(key=lambda x: x[0])
+            parent1 = self.tournament_select(neighborhood, max(2, self.population_size//5), p=0.95)
+            parent2 = self.tournament_select(neighborhood, max(2, self.population_size//5), p=0.95)
+            child = self.crossover(parent1, parent2)
+            if diversity < 0.4:
+                self.mutate(child, self.mutation_rate * 2)
+            else:
+                self.mutate(child, self.mutation_rate)
+            population.append(child)
+        # Add the one new individual, because we skipped the last one when making children
+        population.append(self.generate_individual())
+        return population
+
+    def train(self, iterations: int = 100, accuracy: float = -1.0, metric: str = "chi"):
+        start_time = time.time()
+        elitism = max(2, int(self.population_size/10))
+        num_generations = max(1, iterations // self.population_size)
+        generation = 0
+        try:
+            fitness_scores = []
+            population = [self.generate_individual() for _ in range(self.population_size)]
+            for generation in range(num_generations):
+                logger.info(f"Generation {generation + 1} of {num_generations} - Population size: {len(population)} Best from last Generation: {elitism if generation > 0 else 0} individuals")
+                if  len(fitness_scores) < elitism:
+                    fitness_scores = []
+                else:
+                    # Keep the best individuals from the previous generation
+                    fitness_scores = fitness_scores[:elitism]
+                    if len(fitness_scores) != elitism:
+                        raise RuntimeError(f"Elitism size mismatch: {len(fitness_scores)} != {elitism}")
+                fitness_scores.extend(self.calculate_fitness(population, metric=metric))
+                if len(fitness_scores) != self.population_size:
+                    raise RuntimeError(f"Population size mismatch: {len(fitness_scores)} != {self.population_size}")
+                fitness_scores.sort(key=lambda x: x[0])
+
+                diversity = self.population_diversity(population)
+                logger.info(f"Generation {generation + 1} - Best fitness: {fitness_scores[0][0]} - Diversity: {diversity}")
+
+                if generation < num_generations - 1:
+                    population = self.make_children(fitness_scores, elitism, diversity)
+                
+                if len(population) != self.population_size - elitism:
+                    raise RuntimeError(f"Population size mismatch after generation {generation + 1}: {len(population)} != {self.population_size - elitism} (- elitism {elitism})")
+
+                best = fitness_scores[0]
+                if self.fitness is None or best[0] < self.fitness:
+                    individual = best[1]
+                    for name, param in self.parameters.items():
+                        param.value = individual.get(name)
+                    self.fitness = best[0]
+
+        except KeyboardInterrupt:
+            logger.info(f"Interrupted Training during generation {generation}")
+        end_time = time.time()
+        logger.info(f"Total Training time: {end_time-start_time}s")
+        logger.info(f"Best Fitness ({metric}): {self.fitness}")
+        for name, param in self.parameters.items():
+            logger.info(f"{name} = {param.value} [{param.minimum}, {param.maximum}]")
 
     def apply(self):
         for name, param in self.parameters.items():

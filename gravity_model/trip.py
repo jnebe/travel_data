@@ -181,7 +181,7 @@ class TripContainer:
         if self._df is None:
             num_chunks = min(cpu_count(), max(1, (len(self._trips) // 250_000)))
             chunks = self.chunkify(self.trips, num_chunks)
-            logger.info(f"Creating DataFrame from Trips in {num_chunks} chunks of size {len(chunks[0])}...")
+            logger.debug(f"Creating DataFrame from Trips in {num_chunks} chunks of size {len(chunks[0])}...")
             with ProcessPoolExecutor(max_workers=cpu_count()) as executor:
                 try:
                     dfs = list(executor.map(TripContainer.process_chunk, chunks))
@@ -191,7 +191,7 @@ class TripContainer:
             self._df = pl.concat(dfs, rechunk=True)
             
 
-            logger.info(f"DataFrame created with {self._df.height} rows and {self._df.width} columns")
+            logger.debug(f"DataFrame created with {self._df.height} rows and {self._df.width} columns")
         return self._df
     
     @df.setter

@@ -1,7 +1,9 @@
 import tqdm
 import polars as pl
+import logging
 
 from .trip import Trip, TripContainer
+from .log import logger
 
 HISTROGRAM_BIN_SIZE = 10
 
@@ -25,7 +27,7 @@ def get_histogram(trips: TripContainer) -> list[tuple[int, int]]:
     )
 
     results = []
-    for bin in tqdm.tqdm(bins.iter_rows(named=True), desc="Binning", total=bins.height, unit="row(s)"):
+    for bin in tqdm.tqdm(bins.iter_rows(named=True), desc="Binning", total=bins.height, unit="row(s)", disable=not logger.level < logging.INFO):
         results.append((bin["label"], bin["percentage"]))
     return results
 
