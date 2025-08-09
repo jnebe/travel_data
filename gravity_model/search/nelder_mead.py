@@ -1,5 +1,4 @@
 import time
-import itertools
 
 from ..training import Parameter, chi_square_distance, get_histogram, kolmogorov_smirnov_statistic, get_ccdf
 from ..trip import TripContainer
@@ -12,12 +11,12 @@ class NelderMeadSearch():
     REFLECTION_COEFFICIENT = 1.0
     EXPANSION_COEFFICIENT = 2.0
     CONTRACTION_COEFFICIENT = 0.5
-    SHRINKAGE_COEFFICIENT = 0.5
+    SHRINKAGE_COEFFICIENT = 0.75
 
-    NEADER_MELD_STEPSIZE = 0.66
+    NEADER_MELD_STEPSIZE = 0.75
 
-    GENERATION_SIZE = 10
-    SHRINKAGE_REQUIREED = 5
+    GENERATION_SIZE = 20
+    SHRINKAGE_REQUIREED = GENERATION_SIZE // 5
 
     def __init__(self, model, desired: TripContainer, parameters: dict[str, tuple[float, float, float]]):
         self.model = model
@@ -47,7 +46,7 @@ class NelderMeadSearch():
             simplex.append(vertex)
         return simplex
 
-    def initialize_user_simplex(self, user_guess: dict[str, float], step_size: float = NEADER_MELD_STEPSIZE, backslide_ratio: float = 0.33):
+    def initialize_user_simplex(self, user_guess: dict[str, float], step_size: float = NEADER_MELD_STEPSIZE, backslide_ratio: float = 0.0):
         simplex = []
         dimensions = len(self.parameters) + 1
         if dimensions < 2:
@@ -57,26 +56,28 @@ class NelderMeadSearch():
                 raise ValueError(f"User guess must include parameter: {name}")
         # Start with a vertex at the user guess
         # slide back user guess by a ratio of the step size
+        start_guess = user_guess.copy()
+        logger.info(f"User guess before backslide: {start_guess}")
         for name, param in self.parameters.items():
-            if abs(user_guess[name] - self.parameters[name].minimum) < abs(user_guess[name] - self.parameters[name].maximum):
+            if abs(start_guess[name] - self.parameters[name].minimum) < abs(start_guess[name] - self.parameters[name].maximum):
                 param_vector = (param.maximum - param.minimum)
             else:
                 param_vector = (param.minimum - param.maximum)
-            logger.info(f"User guess {name} = {user_guess[name]} | param_vector = {param_vector}")
-            logger.info(f"User guess {name} = {user_guess[name]} | step_size = {step_size} | backslide_ratio = {backslide_ratio}")
-            user_guess[name] -= (param_vector * (step_size * backslide_ratio))
-            logger.info(f"User guess {name} after backslide = {user_guess[name]}")
-        user_guess = self.clamp_vertex(
-            user_guess
+            logger.info(f"User guess {name} = {start_guess[name]} | param_vector = {param_vector}")
+            logger.info(f"User guess {name} = {start_guess[name]} | step_size = {step_size} | backslide_ratio = {backslide_ratio}")
+            start_guess[name] -= (param_vector * (step_size * backslide_ratio))
+            logger.info(f"User guess {name} after backslide = {start_guess[name]}")
+        start_guess = self.clamp_vertex(
+            start_guess
         )
-        simplex.append(user_guess)
-        print(f"User guess: {user_guess}")
+        simplex.append(start_guess)
+        print(f"User guess: {start_guess}")
 
         # Add vertices around the user guess
         for name, param in self.parameters.items():
-            new_vertex = user_guess.copy()
+            new_vertex = start_guess.copy()
 
-            if abs(user_guess[name] - self.parameters[name].minimum) < abs(user_guess[name] - self.parameters[name].maximum):
+            if abs(start_guess[name] - self.parameters[name].minimum) < abs(start_guess[name] - self.parameters[name].maximum):
                 param_vector = (param.maximum - param.minimum)
             else:
                 param_vector = (param.minimum - param.maximum)
@@ -107,7 +108,7 @@ class NelderMeadSearch():
 
         # Check simplex performance
         logger.info(f"Testing simplex: {simplex}")
-        model_trips: TripContainer = self.model.make_trips(DEFAULT_TRAINING_TRIPS)
+        model_trips: TripContainer = self.model.make_trips(min(DEFAULT_TRAINING_TRIPS, len(self.real_data)))
         chi = chi_square_distance(get_histogram(self.real_data), get_histogram(model_trips))
         kss = kolmogorov_smirnov_statistic(get_ccdf(self.real_data), get_ccdf(model_trips))
         return chi, kss
@@ -129,7 +130,7 @@ class NelderMeadSearch():
         best_vertex = { name: None for name in self.parameters.keys() }
         try:
             for iteration in range(iterations):
-                if current_gen_iteration >= self.GENERATION_SIZE and current_gen_shrinkage >= self.SHRINKAGE_REQUIREED:
+                if current_gen_iteration >= self.GENERATION_SIZE or current_gen_shrinkage >= self.SHRINKAGE_REQUIREED:
                     logger.info(f"Generation {generation} completed. Re-initializing simplex.")
                     generation += 1
 
