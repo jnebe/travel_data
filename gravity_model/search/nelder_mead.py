@@ -13,7 +13,7 @@ class NelderMeadSearch():
     CONTRACTION_COEFFICIENT = 0.5
     SHRINKAGE_COEFFICIENT = 0.75
 
-    NEADER_MELD_STEPSIZE = 0.75
+    NEADER_MELD_STEPSIZE = 1.0
 
     GENERATION_SIZE = 20
     SHRINKAGE_REQUIREED = GENERATION_SIZE // 5
@@ -58,15 +58,17 @@ class NelderMeadSearch():
         # slide back user guess by a ratio of the step size
         start_guess = user_guess.copy()
         logger.info(f"User guess before backslide: {start_guess}")
-        for name, param in self.parameters.items():
-            if abs(start_guess[name] - self.parameters[name].minimum) < abs(start_guess[name] - self.parameters[name].maximum):
-                param_vector = (param.maximum - param.minimum)
-            else:
-                param_vector = (param.minimum - param.maximum)
-            logger.info(f"User guess {name} = {start_guess[name]} | param_vector = {param_vector}")
-            logger.info(f"User guess {name} = {start_guess[name]} | step_size = {step_size} | backslide_ratio = {backslide_ratio}")
-            start_guess[name] -= (param_vector * (step_size * backslide_ratio))
-            logger.info(f"User guess {name} after backslide = {start_guess[name]}")
+        if backslide_ratio > 0.0:
+            logger.info(f"step_size = {step_size} | backslide_ratio = {backslide_ratio}")
+            for name, param in self.parameters.items():
+                if abs(start_guess[name] - self.parameters[name].minimum) < abs(start_guess[name] - self.parameters[name].maximum):
+                    param_vector = (param.maximum - param.minimum)
+                else:
+                    param_vector = (param.minimum - param.maximum)
+                change = (param_vector * (step_size * backslide_ratio))
+                logger.info(f"param_vector = {param_vector} | change = {change}")
+                start_guess[name] -= change
+        logger.info(f"User guess {name} after backslide = {start_guess[name]}")
         start_guess = self.clamp_vertex(
             start_guess
         )
@@ -129,14 +131,15 @@ class NelderMeadSearch():
         current_gen_shrinkage = 0
         best_vertex = { name: None for name in self.parameters.keys() }
         try:
-            for iteration in range(iterations):
-                if current_gen_iteration >= self.GENERATION_SIZE or current_gen_shrinkage >= self.SHRINKAGE_REQUIREED:
+            for current_iteration in range(iterations):
+                remaining_iterations = iterations - current_iteration
+                if remaining_iterations > 5 and (current_gen_iteration >= self.GENERATION_SIZE or current_gen_shrinkage >= self.SHRINKAGE_REQUIREED):
                     logger.info(f"Generation {generation} completed. Re-initializing simplex.")
                     generation += 1
 
                     best_vertex = vertex_performance[0][1]
-                    initial_simplex = self.initialize_simplex(user_guess=best_vertex.copy(), step_size=self.NEADER_MELD_STEPSIZE - ((self.NEADER_MELD_STEPSIZE / 2) * (iteration / iterations)))
-                    logger.info(f"Re-initializing simplex at iteration {iteration} with best vertex: {best_vertex}")
+                    initial_simplex = self.initialize_simplex(user_guess=best_vertex.copy(), step_size=self.NEADER_MELD_STEPSIZE - ((self.NEADER_MELD_STEPSIZE * 0.8) * (current_iteration / iterations)))
+                    logger.info(f"Re-initializing simplex at iteration {current_iteration} with best vertex: {best_vertex}")
                     logger.info(f"Re-initialized simplex: {initial_simplex}")
                     vertex_performance = []
                     current_gen_iteration = 0
@@ -157,7 +160,7 @@ class NelderMeadSearch():
                     current_gen_iteration += 1
 
                 vertex_performance.sort(key=lambda x: x[0])
-                logger.info(f"Iteration {iteration} | Best performance: {vertex_performance[0][0]} | {metric}")
+                logger.info(f"Iteration {current_iteration} | Best performance: {vertex_performance[0][0]} | {metric}")
                 logger.info(f"Current generation iteration: {current_gen_iteration} | Current generation shrinkage: {current_gen_shrinkage}")
 
                 # 1.2 Apply best vertex
@@ -247,7 +250,7 @@ class NelderMeadSearch():
 
                 current_gen_shrinkage += 1                
         except KeyboardInterrupt:
-            logger.info(f"Interrupted Training during iteration {iteration}")
+            logger.info(f"Interrupted Training during iteration {current_iteration}")
         end_time = time.time()
         logger.info(f"Total Training time: {end_time-start_time}s")
         logger.info(f"{metric}: {self.metric}")
