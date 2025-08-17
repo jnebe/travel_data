@@ -1,20 +1,20 @@
+from pathlib import Path
 import time
 import random
+import warnings
 
 from ..training import Parameter, chi_square_distance, get_histogram, kolmogorov_smirnov_statistic, get_ccdf
 from ..trip import TripContainer
+from .generic import GenericSearch
 from ..log import logger
 
 from . import DEFAULT_TRAINING_TRIPS
 
-class GeneticSearch:
-    def __init__(self, model, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], population_size=20, mutation_rate=0.2):
-        self.model = model
-        self.real_data: TripContainer = desired
-        self.parameters: dict[str, Parameter] = {}
+class GeneticSearch(GenericSearch):
+    def __init__(self, model, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], csv_path: Path | None = None, population_size=20, mutation_rate=0.2):
+        super().__init__(model=model, desired=desired, parameters=parameters, csv_path=csv_path)
+        
         self.fitness = None
-        for name, value in parameters.items():
-            self.parameters[name] = Parameter(name, value[2], value[0], value[1])
         self.population_size = population_size
         self.mutation_rate = mutation_rate
 
@@ -35,6 +35,7 @@ class GeneticSearch:
             fitness = chi
         elif metric == "kss":
             fitness = kss
+        self.add_parameter_map_point(individual, {"chi" : chi, "kss" : kss})
         return fitness, (chi, kss)
     
     def population_diversity(self, population: list[dict[str, float]]) -> float:
@@ -167,8 +168,3 @@ class GeneticSearch:
         logger.info(f"Best Fitness ({metric}): {self.fitness}")
         for name, param in self.parameters.items():
             logger.info(f"{name} = {param.value} [{param.minimum}, {param.maximum}]")
-
-    def apply(self):
-        for name, param in self.parameters.items():
-            setattr(self.model, name, param.value)
-        self.model.recreate_matrix()

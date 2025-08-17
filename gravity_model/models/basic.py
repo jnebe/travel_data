@@ -44,18 +44,18 @@ class GravityModel():
             self.matrix[trip] = gravity
             self.total_gravity += gravity
 
-    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float]] = None, iterations: int = -1, accuracy: float = 0.1, metric: str = "chi", search_type: SearchType = SearchType.RANDOM):
+    def train(self, desired: TripContainer, parameters: dict[str, tuple[float, float]] = None, iterations: int = -1, accuracy: float = 0.1, metric: str = "chi", search_type: SearchType = SearchType.RANDOM, metric_map: Path = None):
         if parameters is None:
             parameters = {}
         if search_type is SearchType.GRID:
-            search = GridSearch(self, desired, parameters)
+            search = GridSearch(self, desired, parameters, metric_map)
         elif search_type is SearchType.GENETIC:
             population_size = max(20, min(30, (iterations + 200) // 20))
-            search = GeneticSearch(self, desired, parameters, population_size=population_size)
+            search = GeneticSearch(self, desired, parameters, population_size=population_size, csv_path=metric_map)
         elif search_type is SearchType.NELDER_MEAD:
-            search = NelderMeadSearch(self, desired, parameters)
+            search = NelderMeadSearch(self, desired, parameters, metric_map)
         else:
-            search = RandomSearch(self, desired, parameters)
+            search = RandomSearch(self, desired, parameters, metric_map)
         search.train(iterations, accuracy, metric)
         search.apply()
 

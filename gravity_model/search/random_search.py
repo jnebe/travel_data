@@ -1,34 +1,31 @@
 import time
 import random
 
-from ..training import Parameter, chi_square_distance, get_histogram, kolmogorov_smirnov_statistic, get_ccdf
+from ..training import chi_square_distance, get_histogram, kolmogorov_smirnov_statistic, get_ccdf
 from ..trip import TripContainer
+from .generic import GenericSearch
 from ..log import logger
 
 from . import DEFAULT_TRAINING_TRIPS
 
-class RandomSearch():
-
-    def __init__(self, model, desired: TripContainer, parameters: dict[str, tuple[float, float, float]]):
-        self.model = model
-        self.real_data = desired
-        self.parameters: dict[str, Parameter] = {}
-        self.metrics: dict[str, float] = { "chi" : None, "kss": None }
-        for name, value in parameters.items():
-            self.parameters[name] = Parameter(name, value[2], value[0], value[1])
+class RandomSearch(GenericSearch):
 
     def train(self, iterations: int = 100, accuracy: float = -1.0, metric: str = "chi"):
         start_time = time.time()
         iteration = 0
         try:
             while (iteration < iterations and iterations != -1):
+                current_params = {}
                 for name, param in self.parameters.items():
-                    setattr(self.model, name, random.uniform(param.minimum, param.maximum))
+                    value = random.uniform(param.minimum, param.maximum)
+                    current_params[name] = value
+                    setattr(self.model, name, value)
 
                 self.model.recreate_matrix()
                 model_trips: TripContainer = self.model.make_trips(DEFAULT_TRAINING_TRIPS)
                 chi = chi_square_distance(get_histogram(self.real_data), get_histogram(model_trips))
                 kss = kolmogorov_smirnov_statistic(get_ccdf(self.real_data), get_ccdf(model_trips))
+                self.add_parameter_map_point(current_params, {"chi" : chi, "kss" : kss})
                 current_metrics = { "chi" : chi, "kss" : kss }
                 logger.info(f"Iteration {iteration} - Chi-Squared Distance: {chi} - KSS: {kss}")
                 for name, param in self.parameters.items():
@@ -48,9 +45,3 @@ class RandomSearch():
         logger.info(f"Chi-Squared Distance: {self.metrics['chi']} - KSS: {self.metrics['kss']}")
         for name, param in self.parameters.items():
             logger.info(f"{name} = {param.value} [{param.minimum}, {param.maximum}]")
-        
-
-    def apply(self):
-        for name, param in self.parameters.items():
-            setattr(self.model, name, param.value)
-        self.model.recreate_matrix()

@@ -1,12 +1,15 @@
+from pathlib import Path
 import time
+import warnings
 
-from ..training import Parameter, chi_square_distance, get_histogram, kolmogorov_smirnov_statistic, get_ccdf
+from ..training import chi_square_distance, get_histogram, kolmogorov_smirnov_statistic, get_ccdf
 from ..trip import TripContainer
+from .generic import GenericSearch
 from ..log import logger
 
 from . import DEFAULT_TRAINING_TRIPS
 
-class NelderMeadSearch():
+class NelderMeadSearch(GenericSearch):
 
     REFLECTION_COEFFICIENT = 1.0
     EXPANSION_COEFFICIENT = 2.0
@@ -18,13 +21,10 @@ class NelderMeadSearch():
     GENERATION_SIZE = 20
     SHRINKAGE_REQUIREED = GENERATION_SIZE // 5
 
-    def __init__(self, model, desired: TripContainer, parameters: dict[str, tuple[float, float, float]]):
-        self.model = model
-        self.real_data = desired
-        self.parameters: dict[str, Parameter] = {}
+    def __init__(self, model, desired: TripContainer, parameters: dict[str, tuple[float, float, float]], csv_path: Path | None = None, population_size=20, mutation_rate=0.2):
+        super().__init__(model=model, desired=desired, parameters=parameters, csv_path=csv_path)
+
         self.metric: float = None
-        for name, value in parameters.items():
-            self.parameters[name] = Parameter(name, value[2], value[0], value[1])
 
     def initialize_default_simplex(self):
         simplex = []
@@ -149,6 +149,7 @@ class NelderMeadSearch():
                 if len(vertex_performance) <= 0:
                     for vertex in initial_simplex:
                         chi, kss = self.evaluate_simplex(vertex)
+                        self.add_parameter_map_point(vertex, {"chi" : chi, "kss" : kss})
                         if metric == "chi":
                             performance_metric = chi
                         elif metric == "kss":
@@ -197,6 +198,7 @@ class NelderMeadSearch():
                 )
                 logger.info(f"Reflection vertex: {reflection_vertex}")
                 reflection_chi, reflection_kss = self.evaluate_simplex(reflection_vertex)
+                self.add_parameter_map_point(reflection_vertex, {"chi" : reflection_chi, "kss" : reflection_kss})
                 reflection_performance = reflection_chi if metric == "chi" else reflection_kss
                 if best_vertex[0] <= reflection_performance < second_worst_vertex[0]:
                     logger.info(f"Accepting reflection vertex: {reflection_vertex} with performance {reflection_performance}")
@@ -210,6 +212,7 @@ class NelderMeadSearch():
                     )
                     logger.info(f"Expansion vertex: {expansion_vertex}")
                     expansion_chi, expansion_kss = self.evaluate_simplex(expansion_vertex)
+                    self.add_parameter_map_point(expansion_vertex, {"chi" : expansion_chi, "kss" : expansion_kss})
                     expansion_performance = expansion_chi if metric == "chi" else expansion_kss
                     if expansion_performance < reflection_performance:
                         logger.info(f"Accepting expansion vertex: {expansion_vertex} with performance {expansion_performance}")
@@ -231,6 +234,7 @@ class NelderMeadSearch():
                     )
                 logger.info(f"Contraction vertex: {contraction_vertex}")
                 contraction_chi, contraction_kss = self.evaluate_simplex(contraction_vertex)
+                self.add_parameter_map_point(contraction_vertex, {"chi" : contraction_chi, "kss" : contraction_kss})
                 contraction_performance = contraction_chi if metric == "chi" else contraction_kss
                 if contraction_performance < worst_vertex[0]:
                     logger.info(f"Accepting contraction vertex: {contraction_vertex} with performance {contraction_performance}")
@@ -245,6 +249,7 @@ class NelderMeadSearch():
                     )
                     logger.info(f"Shrinked vertex {i}: {shrinked_vertex}")
                     shrinked_chi, shrinked_kss = self.evaluate_simplex(shrinked_vertex)
+                    self.add_parameter_map_point(shrinked_vertex, {"chi" : shrinked_chi, "kss" : shrinked_kss})
                     shrinked_performance = shrinked_chi if metric == "chi" else shrinked_kss
                     vertex_performance[i] = (shrinked_performance, shrinked_vertex)
 
@@ -256,9 +261,3 @@ class NelderMeadSearch():
         logger.info(f"{metric}: {self.metric}")
         for name, param in self.parameters.items():
             logger.info(f"{name} = {param.value} [{param.minimum}, {param.maximum}]")
-        
-
-    def apply(self):
-        for name, param in self.parameters.items():
-            setattr(self.model, name, param.value)
-        self.model.recreate_matrix()

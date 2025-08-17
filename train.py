@@ -31,7 +31,8 @@ from gravity_model.search import SearchType
 @click.option("--optimize", type=click.Path(exists=True, readable=True, dir_okay=False, path_type=Path))
 @click.option("--default-parameter", type=(str, float), multiple=True)
 @click.option("--training-parameter", type=(str, float, float, float), multiple=True)
-def main(location_data: Path, model_output: Path, model_type: ModelType, search_type: SearchType, optimize: Path, iterations: int, metric: str, default_parameter: list[tuple[str, float]], training_parameter: list[tuple[str, float, float, float]]):
+@click.option("--metric-map", type=click.Path(exists=False, dir_okay=False, path_type=Path))
+def main(location_data: Path, model_output: Path, model_type: ModelType, search_type: SearchType, optimize: Path, iterations: int, metric: str, default_parameter: list[tuple[str, float]], training_parameter: list[tuple[str, float, float, float]], metric_map: Path):
     logger.info(f"Loading location data from {location_data.absolute().as_posix()}")
     locs = LocationContainer.from_csv(location_data)
     default_parameter = {element[0]: element[1] for element in default_parameter}
@@ -95,7 +96,7 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, search_
             accuracy=0.0005
             parameters={"alpha": POWER_LAW_DIST_TUPLE, "beta": POWER_LAW_DIST_TUPLE, "gamma": DISTANCE_SPLIT_TUPLE}
         parameters.update(training_parameter)
-        model.train(desired=target_trips, iterations=iterations, accuracy=accuracy, metric=metric, parameters=parameters, search_type=search_type)
+        model.train(desired=target_trips, iterations=iterations, accuracy=accuracy, metric=metric, parameters=parameters, search_type=search_type, metric_map=metric_map)
     logger.info(f"Storing model at {model_output.absolute().as_posix()}")
     model.to_json(model_output)
 
