@@ -7,9 +7,9 @@ from ..trip import Trip
 class DoubleExponentialGravityModel(ExponentialGravityModel):
 
     def gravity(self, trip: Trip):
-        numerator = exp(-self.beta * trip.locations[0].population) * exp(-self.beta * trip.locations[1].population)
+        numerator = exp(self.beta * trip.locations[0].population) * exp(self.beta * trip.locations[1].population)
         denominator = exp(-self.alpha * trip.distance.kilometers)
-        return max(numerator, float_info.min) / max(denominator, float_info.min)
+        return max(numerator, float_info.min) * max(denominator, float_info.min)
 
     def __init__(self, locations, alpha: float = 1.0, beta: float = 1.0, minimum_distance: int = 100):
         self.beta = beta

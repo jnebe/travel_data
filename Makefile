@@ -34,7 +34,7 @@ METRIC ?= chi
 
 # Evaluation rule (e.g. power-eval)
 %-eval: $(EVAL_DEPS) %_model_output.csv
-	$(CMD_PREFIX) ./eval.py -e -c real_output.csv real $*_model_output.csv graphs/$*/ model 
+	$(CMD_PREFIX) ./eval.py -e -c real_output.csv real $*_model_output.csv graphs/$*/ model
 
 # Full workflow for a type (e.g. full-power)
 full-%: loc_data.csv real_output.csv %_model.json %_model_output.csv %-eval

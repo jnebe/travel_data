@@ -46,7 +46,7 @@ def main(heatmap_output: Path, metric_map_data: Iterable[Path], parameter: Itera
                 Z = griddata((x, y), z, (X, Y), method='linear')
                 Z = np.where(np.isnan(Z), np.inf, Z)
 
-                neighborhood_min = minimum_filter(Z, size=3, mode='constant', cval=np.inf)
+                neighborhood_min = minimum_filter(Z, size=2**4, mode='constant', cval=np.inf)
                 local_min_mask = (Z == neighborhood_min) & np.isfinite(Z)
 
                 x_min = X[local_min_mask]
@@ -68,7 +68,7 @@ def main(heatmap_output: Path, metric_map_data: Iterable[Path], parameter: Itera
                             showlines=False,
                             start=Z.min(),
                             end=Z.max(),
-                            size=0.001 # step between levels
+                            size=0.00025 # step between levels
                         ),
                         colorscale='RdBu',
                     )
@@ -93,6 +93,8 @@ def main(heatmap_output: Path, metric_map_data: Iterable[Path], parameter: Itera
                     textfont=dict(size=12, color='black'),
                 ))
 
+                fig.update_layout(showlegend=False)
+
                 fig.write_image(
                     heatmap_output.joinpath(f"{currentMetric}_{param_i}_{param_c}.png"),
                     format="png",
@@ -114,6 +116,9 @@ def main(heatmap_output: Path, metric_map_data: Iterable[Path], parameter: Itera
                     marker=dict(size=6)
                 )
             )
+
+            fig.update_layout(showlegend=False)
+
             fig.write_image(
                 heatmap_output.joinpath(f"{currentMetric}_{param}.png"),
                     format="png",

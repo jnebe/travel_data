@@ -3,7 +3,7 @@ from pathlib import Path
 
 import click
 
-from gravity_model.search import POWER_LAW_TUPLE, EXPONENTIAL_TUPLE, POWER_LAW_DIST_TUPLE, POWER_LAW_POP_TUPLE, DISTANCE_SPLIT_TUPLE
+from gravity_model.search import POWER_LAW_TUPLE, EXPONENTIAL_TUPLE, POWER_LAW_DIST_TUPLE, POWER_LAW_POP_TUPLE, DISTANCE_SPLIT_TUPLE, EXPONENTIAL_POP_TUPLE
 from gravity_model.log import logger
 from gravity_model.trip import TripContainer
 from gravity_model.location import LocationContainer
@@ -51,9 +51,9 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, search_
     elif model_type is ModelType.EXPO:
         model = ExponentialGravityModel(locs, default_parameter.get("alpha", 0.01))
     elif model_type is ModelType.DOUBLEEXPO:
-        model = DoubleExponentialGravityModel(locs, default_parameter.get("alpha", 0.01), default_parameter.get("beta", 0.01))
+        model = DoubleExponentialGravityModel(locs, default_parameter.get("alpha", 0.001), default_parameter.get("beta", 0.00001))
     elif model_type is ModelType.TRIPLEEXPO:
-        model = TripleExponentialGravityModel(locs, default_parameter.get("alpha", 0.01), default_parameter.get("beta", 0.01), default_parameter.get("gamma", 0.01))
+        model = TripleExponentialGravityModel(locs, default_parameter.get("alpha", 0.001), default_parameter.get("beta", 0.00001), default_parameter.get("gamma", 0.00001))
     elif model_type is ModelType.EXPOWER:
         model = ExponentialPowerGravityModel(locs, default_parameter.get("alpha", 1.0), default_parameter.get("beta", 0.01))
     elif model_type is ModelType.SPLIT:
@@ -85,10 +85,10 @@ def main(location_data: Path, model_output: Path, model_type: ModelType, search_
             parameters={"alpha": EXPONENTIAL_TUPLE}
         elif model_type is ModelType.DOUBLEEXPO:
             accuracy=0.00005
-            parameters={"alpha": EXPONENTIAL_TUPLE, "beta": EXPONENTIAL_TUPLE}
+            parameters={"alpha": EXPONENTIAL_TUPLE, "beta": EXPONENTIAL_POP_TUPLE}
         elif model_type is ModelType.TRIPLEEXPO:
             accuracy=0.00005
-            parameters={"alpha": EXPONENTIAL_TUPLE, "beta": EXPONENTIAL_TUPLE, "gamma": EXPONENTIAL_TUPLE}
+            parameters={"alpha": EXPONENTIAL_TUPLE, "beta": EXPONENTIAL_POP_TUPLE, "gamma": EXPONENTIAL_POP_TUPLE}
         elif model_type is ModelType.EXPOWER:
             accuracy=0.0005
             parameters={"alpha": POWER_LAW_DIST_TUPLE, "beta": EXPONENTIAL_TUPLE}
