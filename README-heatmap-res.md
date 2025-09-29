@@ -60,6 +60,7 @@ plot_azimuth_windrose(azimuths)
 
 # Histograms of geolocation differences
 plot_startpoint_differences_histogram(original_df, df)
+```
 
 ## Notes
 - For performance and clarity, sample large datasets before plotting lines or heatmaps.
