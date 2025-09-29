@@ -25,27 +25,24 @@ Install any needed packages using `pip install pandas geopandas numpy matplotlib
 
 ## Main Functions
 1. Creating GeoDataFrames
-`create_funkturm_gdf(funkturm_data)`: `
-Combines origin and destination coordinates into a single GeoDataFrame (gdf) with geometry points and a type label (Home or Destination).
+  - `create_funkturm_gdf(funkturm_data)`: `Combines origin and destination coordinates into a single GeoDataFrame (gdf) with geometry points and a type label (Home or Destination).
 
 2. Visualizing Tower Locations
-`plot_funkturm_map(funkturm_gdf, uk_data)`: Plots all celltower locations over the UK map, distinguishing origins (blue) and destinations (red).
+  - `plot_funkturm_map(funkturm_gdf, uk_data)`: Plots all celltower locations over the UK map, distinguishing origins (blue) and destinations (red).
 
 3. Heatmaps
-`plot_funkturm_heatmap(funkturm_gdf, uk_data)`: Produces a heatmap of all towers (both home and destination) using kernel density estimation (KDE).
-
-`plot_home_funkturm_heatmap(funkturm_gdf, uk_data)`: Shows a heatmap for only origin towers.
-
-`plot_trip_endpoints_heatmap(funkturm_data, uk_data)`: Used to plot a heatmap of all origins and destinations for trips starting in London.
+ - `plot_funkturm_heatmap(funkturm_gdf, uk_data)`: Produces a heatmap of all towers (both home and destination) using kernel density estimation (KDE).
+ - `plot_home_funkturm_heatmap(funkturm_gdf, uk_data)`: Shows a heatmap for only origin towers.
+ - `plot_trip_endpoints_heatmap(funkturm_data, uk_data)`: Used to plot a heatmap of all origins and destinations for trips starting in London.
 
 4. Visualizing Trip Connections
-`create_trip_lines(funkturm_data)`: Converts trip origin/destination data into GeoDataFrame line geometries for mapping connections.
-`plot_trip_lines(trip_lines_gdf, uk_data)`: Plots sampled trip lines (recommended: use a sample, e.g., 10,000 rows, for clarity) over the UK map.
+  - `create_trip_lines(funkturm_data)`: Converts trip origin/destination data into GeoDataFrame line geometries for mapping connections.
+  - `plot_trip_lines(trip_lines_gdf, uk_data)`: Plots sampled trip lines (recommended: use a sample, e.g., 10,000 rows, for clarity) over the UK map.
 
 5. Filtering and Calculating Directions
-`filter_trips_starting_in_london(funkturm_data)`: Selects only those trips where the origin lies within a defined bounding box for London.
-`calculate_trip_azimuths(funkturm_data)`: Calculates the azimuth (compass direction) of each trip in degrees.
-`plot_azimuth_windrose(azimuths, num_bins=36)`: Creates a windrose/polar histogram to visualize the directional distribution of trips.
+  - `filter_trips_starting_in_london(funkturm_data)`: Selects only those trips where the origin lies within a defined bounding box for London.
+  - `calculate_trip_azimuths(funkturm_data)`: Calculates the azimuth (compass direction) of each trip in degrees.
+  - `plot_azimuth_windrose(azimuths, num_bins=36)`: Creates a windrose/polar histogram to visualize the directional distribution of trips.
 
 ## Example Usage
 
