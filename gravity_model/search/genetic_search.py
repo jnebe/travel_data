@@ -1,9 +1,8 @@
 from pathlib import Path
 import time
 import random
-import warnings
 
-from ..training import Parameter, chi_square_distance, get_histogram, kolmogorov_smirnov_statistic, get_ccdf
+from ..training import chi_square_distance, get_histogram, kolmogorov_smirnov_statistic, get_ccdf
 from ..trip import TripContainer
 from .generic import GenericSearch
 from ..log import logger

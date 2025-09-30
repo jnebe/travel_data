@@ -1,7 +1,6 @@
 from . import ModelType
 from .power import PowerGravityModel
 from ..trip import Trip
-from ..log import logger
 
 class DoublePowerGravityModel(PowerGravityModel):
 

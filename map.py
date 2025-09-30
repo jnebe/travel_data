@@ -5,7 +5,6 @@ from itertools import combinations
 
 import click
 import polars as pl
-import seaborn as sb
 import plotly.graph_objects as go
 import numpy as np
 from scipy.interpolate import griddata

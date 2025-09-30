@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import math
 from typing import Iterable
 import polars as pl
 import seaborn as sb

@@ -1,8 +1,7 @@
 from . import ModelType
 from .basic import GravityModel
 
-from ..trip import Trip, TripContainer
-from ..search import SearchType
+from ..trip import Trip
 
 from sys import float_info
 

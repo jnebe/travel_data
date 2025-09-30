@@ -1,9 +1,6 @@
 from . import ModelType
 from .basic import GravityModel
-from ..search.random_search import RandomSearch
-from ..search.grid_search import GridSearch
-from ..trip import Trip, TripContainer
-from ..search import SearchType
+from ..trip import Trip
 
 class SplitGravityModel(GravityModel):
 

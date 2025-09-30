@@ -1,6 +1,5 @@
 from pathlib import Path
 import time
-import warnings
 
 from ..training import chi_square_distance, get_histogram, kolmogorov_smirnov_statistic, get_ccdf
 from ..trip import TripContainer

@@ -2,7 +2,7 @@ import tqdm
 import polars as pl
 import logging
 
-from .trip import Trip, TripContainer
+from .trip import TripContainer
 from .log import logger
 
 HISTROGRAM_BIN_SIZE = 10
