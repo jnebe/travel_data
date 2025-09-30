@@ -27,7 +27,7 @@ from gravity_model.search import SearchType
 @click.argument("model_type", metavar="[Model Type]", type=click.Choice(ModelType, case_sensitive=False))
 @click.option("-i", "--iterations", type=int, default=100)
 @click.option("-m", "--metric", type=str, default="chi")
-@click.option("-s", "--search-type", type=click.Choice(SearchType, case_sensitive=False), default=SearchType.RANDOM)
+@click.option("-s", "--search-type", type=click.Choice(SearchType, case_sensitive=False), default=SearchType.NELDER_MEAD)
 @click.option("--optimize", type=click.Path(exists=True, readable=True, dir_okay=False, path_type=Path))
 @click.option("--default-parameter", type=(str, float), multiple=True)
 @click.option("--training-parameter", type=(str, float, float, float), multiple=True)
