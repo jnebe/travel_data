@@ -19,27 +19,40 @@ Uses:
 
 ## Table of Contents
 
-- [ToDo's](./TODO.md)
+- [heatmap.py README](./README-heatmap.md)
+- [heatmap.py README](./README-heatmap-res.md)
+- [celltower data README](./celltower_data/README.md)
+- [census data README](./census_data/README.md)
+- [gravity model helpers](./gravity_model/README.md)
+- [gravity model implementations](./gravity_model/models/README.md)
+- [gravity model search algorithms](./gravity_model/search/README.md)
+- [data output formats](./FORMATS.md)
 
-## Tasks
+## Main Scripts
 
-1. Extract geo-data from UK. Population and pair-wise distances between districts. We have multiple possibilites for granularity. Reasonable to me seems Local Authority Districts:
+Main scripts are those that can be executed.
+Other files are libraries/helper files used for those main scripts.
 
-<https://geoportal.statistics.gov.uk/datasets/ons::local-authority-districts-may-2024-boundaries-uk-bfe-2/explore?location=53.279432%2C-4.166132%2C6.81>
+- [preprocess](./preprocess.py) - converts the census data into a single location dataset
+- [convert](./convert.py) - converts the celltower data we have to the common format we use for trips, based on the location data created by process.py
+- [train](./train.py) - uses the location data and the converted celltower data to generate a gravity model, optimising the parameters of the model to produce more similar trips based on the trip length histogram.
+- [run](./run.py) - uses a gravity model to generate a certain amount of trips
+- [eval](./eval.py) - produces graphs comparing the real and the model output, producing histogram, CCDF, CDF and KDE plots
+- [map](./map.py) - produces heightmaps to visualize the relationship between parameters and error metrics
 
-<https://en.wikipedia.org/wiki/Districts_of_England>
+## Makefile
 
-We don't need Ireland but it would be good to include Scotland and Wales (everything on the mainland). Also merge big cities (e.g. London) to avoid splitting gravitational force.
+The Makefile contains a simple pipeline to produce the required data (assuming all the datasets are placed correctly), train a model and evaluate it.
 
-1. Analyze the empirical data. Look at the files and prepare visualization toolbox. We will frequently look at CDF, CCDF and PDF of the empirical data (log-log scale and unscaled).  
-   Would be cool: Visualizing a heat-map of start- and endpoints for the trips in our data-set
-2. Understanding and implementing the gravity model. Basic variant measures gravity G\_(i,j) between cities i and j as P_i \* P_j / d\_(i,j). Note that G\_(i,j) is symmetric
+We require the following files:
 
-- P_i, P_j are populations of cities i,j
-- d\_(i,j) is the euclidean distance between cities i and j in kilometers
+- `celltower_data/merged_uk_data.csv` - needs to contain the celltower data
+- `census_data/uk_boundaries_merged_2024.csv` - needs to contain the boundary data
+- `census_data/uk_2022.csv` - needs to contain the population data
 
-We will artificially simulate trips following this model. That is, with probability G\_(i,j) / \\sum\_(k,l) G\_(k,l) the next trip will go from city i to city j
+Alternatively, if you have the location data (as `loc_data.csv`) and the converted celltower data (as `real_output.csv`) the make command will skip the initial steps.
 
-We draw many such trips (e.g. 100 000) and then draw the CCDF. This is then compared to the CCDF of the empirical data to measure accuracy
+To use the makefile use: `make full-<model name> ITERATIONS=<your iteration number> SEARCH=<your search algorithm>`
+The makefile defaults to 10 iterations and a search using Nelder-Mead.
 
-Later on we have parameters in our model, which need to by analyzed. Additionally we might try different models. Starting with the power-law variant that has G\_(i,j) = P_i \* P_j / ( d\_(i,j) )^alpha, where alpha > 1 is a parameter to be optimized
+For example, to produce our triple-power model use: `make full-triplepower ITERATIONS=200`

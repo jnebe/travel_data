@@ -1,5 +1,5 @@
 # heatmap-res.py
-This scripr provides functions for analyzing and visualizing travel flows between regions using origin-destination data. 
+This script provides functions for analyzing and visualizing travel flows between regions using origin-destination data. 
 It can be used to compare modeled and observed movement patterns, visualize start and end point densities, 
 draw origin-destination lines, and analyze directional (azimuth) patterns of trips on geographic maps. 
 The core focus is on UK travel data, but the approach is generic and adaptable.

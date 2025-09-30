@@ -21,7 +21,7 @@ real_output.csv: ./convert.py loc_data.csv celltower_data/merged_uk_data.csv
 	$(CMD_PREFIX) ./convert.py -k -d loc_data.csv celltower_data/merged_uk_data.csv balltree real_output.csv
 
 ITERATIONS ?= 5
-SEARCH ?= RANDOM
+SEARCH ?= NELDER_MEAD
 METRIC ?= chi
 
 # Model training rule (e.g. power_model.json, doublepower_model.json, etc.)
